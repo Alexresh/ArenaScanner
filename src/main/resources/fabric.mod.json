@@ -7,7 +7,7 @@
   "authors": [],
   "contact": {},
   "license": "All-Rights-Reserved",
-  "icon": "assets/arenascanner/icon.png",
+  "icon": "assets/arena_scanner/none.png",
   "environment": "client",
   "entrypoints": {
     "client": [

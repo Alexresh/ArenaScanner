@@ -4,7 +4,7 @@
   "package": "ru.obabok.arenascanner.client.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
-    WorldRendererAccessor
+    "WorldRendererAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
