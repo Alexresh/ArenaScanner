@@ -75,7 +75,8 @@ public class ScanCommand {
 
 
     private static int execute(ClientWorld world, ClientPlayerEntity player, BlockBox _range, String filename) throws CommandSyntaxException {
-        stopScan(player);
+        unloadedChunks.clear();
+        range = _range;
         if (world == null) return 0;
         whitelist = loadWhitelist(player, filename);
         if(whitelist == null) return 0;
