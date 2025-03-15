@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "arenascanner",
+  "version": "${version}",
+  "name": "ArenaScanner",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "All-Rights-Reserved",
+  "icon": "assets/arenascanner/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "ru.obabok.arenascanner.client.ArenascannerClient"
+    ],
+    "main": [
+      "ru.obabok.arenascanner.Arenascanner"
+    ]
+  },
+  "mixins": [
+    "arenascanner.mixins.json",
+    {
+      "config": "arenascanner.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
