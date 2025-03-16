@@ -6,14 +6,12 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.xpple.clientarguments.arguments.CBlockPosArgumentType;
 import dev.xpple.clientarguments.arguments.CBlockStateArgumentType;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.registry.Registries;
-import net.minecraft.resource.ResourceType;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -38,7 +36,6 @@ public class ScanCommand {
     public static final ArrayList<ChunkPos> unloadedChunks = new ArrayList<>();
     public static ArrayList<Block> whitelist = new ArrayList<>();
     public static BlockBox range;
-    private static ArrayList<BlockPos> deletedBlockPos = new ArrayList<>();
 
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess commandRegistryAccess) {
 
@@ -120,11 +117,12 @@ public class ScanCommand {
                     }
                 }
             }
-            if(!unloadedChunks.isEmpty()){
-                player.sendMessage(Text.literal("%d blocks found. Unloaded chunks: %d [%d,%d] [%d,%d]".formatted(selectedBlocks.size(), unloadedChunks.size(), unloadedChunks.get(0).getCenterX(), unloadedChunks.get(0).getCenterZ(), unloadedChunks.get(unloadedChunks.size() - 1).getCenterX(), unloadedChunks.get(unloadedChunks.size() - 1).getCenterZ())).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
-            }else{
-                player.sendMessage(Text.literal("%d blocks found.".formatted(selectedBlocks.size())).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
-            }
+
+        }
+        if(!unloadedChunks.isEmpty()){
+            player.sendMessage(Text.literal("%d blocks found. Unloaded chunks: %d [%d,%d] [%d,%d]".formatted(selectedBlocks.size(), unloadedChunks.size(), unloadedChunks.get(0).getCenterX(), unloadedChunks.get(0).getCenterZ(), unloadedChunks.get(unloadedChunks.size() - 1).getCenterX(), unloadedChunks.get(unloadedChunks.size() - 1).getCenterZ())).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
+        }else{
+            player.sendMessage(Text.literal("%d blocks found.".formatted(selectedBlocks.size())).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
         }
     }
 

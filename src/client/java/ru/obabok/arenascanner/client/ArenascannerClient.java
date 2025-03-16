@@ -25,7 +25,7 @@ import ru.obabok.arenascanner.client.util.RenderUtil;
 public class ArenascannerClient implements ClientModInitializer {
     public static final String MOD_ID = "arena_scanner";
     public static KeyBinding renderKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arena_scanner.render", GLFW.GLFW_KEY_R, "category.arena_scanner"));
-    private static boolean render = false;
+    public static boolean render = false;
 
     @Override
     public void onInitializeClient() {
@@ -58,7 +58,7 @@ public class ArenascannerClient implements ClientModInitializer {
         });
 
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
-            if(render){
+            if(render && (!ScanCommand.unloadedChunks.isEmpty() || !ScanCommand.selectedBlocks.isEmpty())){
                 try {
 
                     WorldRendererAccessor worldRenderer = (WorldRendererAccessor) context.worldRenderer();
@@ -67,12 +67,15 @@ public class ArenascannerClient implements ClientModInitializer {
                     context.matrixStack().translate(-pos.x, -pos.y, -pos.z);
                     for (ChunkPos unloadedPos : ScanCommand.unloadedChunks){
                         if(context.camera().getPos().distanceTo(new Vec3d(unloadedPos.getCenterX(), context.camera().getBlockPos().getY(), unloadedPos.getCenterZ())  ) < 300) {
-                            RenderUtil.renderBlock(unloadedPos.getCenterAtY(context.camera().getBlockPos().getY() - 50), context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(), 51200, 2);
+                            RenderUtil.renderBlock(unloadedPos.getCenterAtY(context.camera().getBlockPos().getY() - 50), context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(), 51200, 4);
                         }
 
                     }
-                    for (BlockPos block : ScanCommand.selectedBlocks)
-                        RenderUtil.renderBlock(block, context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(),14423100, 0.2f);
+                    for (BlockPos block : ScanCommand.selectedBlocks){
+                        float scale = (float) Math.min(1, pos.squaredDistanceTo(block.toCenterPos()) / 500);
+                        scale = Math.max(scale, 0.05f);
+                        RenderUtil.renderBlock(block, context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(),13937724, scale);
+                    }
                     context.matrixStack().pop();
                 }catch (Exception ignored){
 
