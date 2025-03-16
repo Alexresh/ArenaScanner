@@ -3,5 +3,11 @@
   "unloadedChunkY": -50,
   "unloadedChunkColor": "#ffec59",
   "unloadedChunkScale": 4.0,
-  "selectedBlocksColor": "#4dd091"
+  "hudRenderUnloadChunks": true,
+  "hudRenderUnloadChunksPosX": 0,
+  "hudRenderUnloadChunksPosY": 0,
+  "hudRenderUnloadChunksLimit": 20,
+  "selectedBlocksColor": "#4dd091",
+  "selectedBlocksViewDistance": -1
+
 }

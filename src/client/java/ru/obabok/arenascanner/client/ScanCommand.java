@@ -72,7 +72,8 @@ public class ScanCommand {
                             ArenascannerClient.CONFIG = ConfigurationManager.loadConfig();
                             commandContext.getSource().getPlayer().sendMessage(Text.literal("Reloaded"));
                             return 1;
-                })));
+                }))
+                .then(literal("toggle_render").executes(commandContext -> {ArenascannerClient.toggleRender(commandContext.getSource().getPlayer()); return 1;})));
 
     }
 
@@ -85,6 +86,7 @@ public class ScanCommand {
         whitelist = loadWhitelist(player, filename);
         if(whitelist == null) return 0;
 
+        ArenascannerClient.render = true;
         int startChunkX = range.getMinX() >> 4;
         int startChunkZ = range.getMinZ() >> 4;
         int endChunkX = range.getMaxX() >> 4;

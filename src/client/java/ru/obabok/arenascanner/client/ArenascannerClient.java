@@ -5,11 +5,13 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallba
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.text.Text;
@@ -31,7 +33,7 @@ import ru.obabok.arenascanner.client.util.RenderUtil;
 public class ArenascannerClient implements ClientModInitializer {
     public static final String MOD_ID = "arenascanner";
     public static Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-    public static KeyBinding renderKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arena_scanner.render", GLFW.GLFW_KEY_R, "category.arena_scanner"));
+    public static KeyBinding renderKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arena_scanner.render", GLFW.GLFW_KEY_UNKNOWN, "category.arena_scanner"));
     public static boolean render = false;
     public static Config CONFIG;
 
@@ -60,12 +62,17 @@ public class ArenascannerClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(minecraftClient -> {
             if(renderKey.wasPressed()){
-                render = !render;
-                if(minecraftClient.player != null)
-                    minecraftClient.player.sendMessage(Text.literal("Render whitelisted blocks: " + render));
+                toggleRender(minecraftClient.player);
             }
         });
 
+        HudRenderCallback.EVENT.register((drawContext, v) -> {
+            if(render && CONFIG.hudRenderUnloadChunks && !ScanCommand.unloadedChunks.isEmpty()){
+                for (int i = 0; i < Math.min(ScanCommand.unloadedChunks.size(), CONFIG.hudRenderUnloadChunksLimit); i++) {
+                    drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(ScanCommand.unloadedChunks.get(i).toString()), (CONFIG.hudRenderUnloadChunksPosX >= 0 ? CONFIG.hudRenderUnloadChunksPosX : (drawContext.getScaledWindowWidth() + CONFIG.hudRenderUnloadChunksPosX)), (CONFIG.hudRenderUnloadChunksPosY >= 0 ? CONFIG.hudRenderUnloadChunksPosY : (drawContext.getScaledWindowHeight() + CONFIG.hudRenderUnloadChunksPosY)) + i * 10,25252525);
+                }
+            }
+        });
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             if(render && (!ScanCommand.unloadedChunks.isEmpty() || !ScanCommand.selectedBlocks.isEmpty())){
                 try {
@@ -83,7 +90,10 @@ public class ArenascannerClient implements ClientModInitializer {
                     for (BlockPos block : ScanCommand.selectedBlocks){
                         float scale = (float) Math.min(1, pos.squaredDistanceTo(block.toCenterPos()) / 500);
                         scale = Math.max(scale, 0.05f);
-                        RenderUtil.renderBlock(block, context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(),CONFIG.selectedBlocksColor, scale);
+                        if(pos.distanceTo(block.toCenterPos()) < CONFIG.selectedBlocksViewDistance || CONFIG.selectedBlocksViewDistance == -1){
+                            RenderUtil.renderBlock(block, context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(),CONFIG.selectedBlocksColor, scale);
+                        }
+
                     }
                     context.matrixStack().pop();
                 }catch (Exception ignored){
@@ -93,5 +103,10 @@ public class ArenascannerClient implements ClientModInitializer {
             }
         });
 
+    }
+    public static void toggleRender(ClientPlayerEntity player){
+        render = !render;
+        if(player != null)
+            player.sendMessage(Text.literal("Render whitelisted blocks: " + render));
     }
 }
