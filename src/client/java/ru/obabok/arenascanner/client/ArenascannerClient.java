@@ -18,17 +18,26 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.glfw.GLFW;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import ru.obabok.arenascanner.client.Models.Config;
 import ru.obabok.arenascanner.client.mixin.WorldRendererAccessor;
+import ru.obabok.arenascanner.client.util.ConfigurationManager;
 import ru.obabok.arenascanner.client.util.RenderUtil;
 
 
+
+
 public class ArenascannerClient implements ClientModInitializer {
-    public static final String MOD_ID = "arena_scanner";
+    public static final String MOD_ID = "arenascanner";
+    public static Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
     public static KeyBinding renderKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arena_scanner.render", GLFW.GLFW_KEY_R, "category.arena_scanner"));
     public static boolean render = false;
+    public static Config CONFIG;
 
     @Override
     public void onInitializeClient() {
+        CONFIG = ConfigurationManager.loadConfig();
         ClientCommandRegistrationCallback.EVENT.register(ScanCommand::register);
         ClientPlayerBlockBreakEvents.AFTER.register((clientWorld, clientPlayerEntity, blockPos, blockState) -> {
             ScanCommand.updateChunk(new ChunkPos(blockPos), clientWorld);
@@ -66,15 +75,15 @@ public class ArenascannerClient implements ClientModInitializer {
                     context.matrixStack().push();
                     context.matrixStack().translate(-pos.x, -pos.y, -pos.z);
                     for (ChunkPos unloadedPos : ScanCommand.unloadedChunks){
-                        if(context.camera().getPos().distanceTo(new Vec3d(unloadedPos.getCenterX(), context.camera().getBlockPos().getY(), unloadedPos.getCenterZ())  ) < 300) {
-                            RenderUtil.renderBlock(unloadedPos.getCenterAtY(context.camera().getBlockPos().getY() - 50), context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(), 51200, 4);
+                        if(context.camera().getPos().distanceTo(new Vec3d(unloadedPos.getCenterX(), context.camera().getBlockPos().getY(), unloadedPos.getCenterZ())  ) < CONFIG.unloadedChunkViewDistance) {
+                            RenderUtil.renderBlock(unloadedPos.getCenterAtY(context.camera().getBlockPos().getY() + CONFIG.unloadedChunkY), context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(), CONFIG.unloadedChunkColor, CONFIG.unloadedChunkScale);
                         }
 
                     }
                     for (BlockPos block : ScanCommand.selectedBlocks){
                         float scale = (float) Math.min(1, pos.squaredDistanceTo(block.toCenterPos()) / 500);
                         scale = Math.max(scale, 0.05f);
-                        RenderUtil.renderBlock(block, context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(),13937724, scale);
+                        RenderUtil.renderBlock(block, context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(),CONFIG.selectedBlocksColor, scale);
                     }
                     context.matrixStack().pop();
                 }catch (Exception ignored){

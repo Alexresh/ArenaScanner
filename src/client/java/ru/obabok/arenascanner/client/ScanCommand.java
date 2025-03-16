@@ -19,6 +19,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import ru.obabok.arenascanner.client.util.ConfigurationManager;
 import ru.obabok.arenascanner.client.util.FileSuggestionProvider;
 
 import java.io.File;
@@ -65,7 +66,13 @@ public class ScanCommand {
                                                 .executes(context -> removeFromWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgumentType.getCBlockState(context,"block").getBlock())))))
                         .then(literal("print")
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
-                                        .executes(context -> printWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist")))))));
+                                        .executes(context -> printWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"))))))
+                .then(literal("reload_config")
+                        .executes(commandContext -> {
+                            ArenascannerClient.CONFIG = ConfigurationManager.loadConfig();
+                            commandContext.getSource().getPlayer().sendMessage(Text.literal("Reloaded"));
+                            return 1;
+                })));
 
     }
 
