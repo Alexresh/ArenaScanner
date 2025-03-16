@@ -7,15 +7,20 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
+import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.glfw.GLFW;
 import ru.obabok.arenascanner.client.mixin.WorldRendererAccessor;
 import ru.obabok.arenascanner.client.util.RenderUtil;
+
 
 public class ArenascannerClient implements ClientModInitializer {
     public static final String MOD_ID = "arena_scanner";
@@ -26,9 +31,20 @@ public class ArenascannerClient implements ClientModInitializer {
     public void onInitializeClient() {
         ClientCommandRegistrationCallback.EVENT.register(ScanCommand::register);
         ClientPlayerBlockBreakEvents.AFTER.register((clientWorld, clientPlayerEntity, blockPos, blockState) -> {
-            //ScanCommand.selectedBlocks.remove(blockPos);
-            ScanCommand.processChunk(clientPlayerEntity, clientWorld, new ChunkPos(blockPos));
+            ScanCommand.updateChunk(new ChunkPos(blockPos), clientWorld);
         });
+
+        AttackBlockCallback.EVENT.register((playerEntity, world, hand, blockPos, direction) -> {
+            if(!world.isClient) return ActionResult.PASS;
+            ScanCommand.updateChunk(new ChunkPos(blockPos), (ClientWorld) world);
+            return ActionResult.PASS;
+        });
+        UseBlockCallback.EVENT.register((playerEntity, world, hand, blockHitResult) -> {
+            if(!world.isClient) return ActionResult.PASS;
+            ScanCommand.updateChunk(new ChunkPos(blockHitResult.getBlockPos()), (ClientWorld) world);
+            return ActionResult.PASS;
+        });
+
         ClientChunkEvents.CHUNK_LOAD.register((clientWorld, worldChunk) -> {
             ScanCommand.processChunk(MinecraftClient.getInstance().player, clientWorld, worldChunk.getPos());
         });
@@ -47,7 +63,6 @@ public class ArenascannerClient implements ClientModInitializer {
 
                     WorldRendererAccessor worldRenderer = (WorldRendererAccessor) context.worldRenderer();
                     Vec3d pos = context.camera().getPos();
-
                     context.matrixStack().push();
                     context.matrixStack().translate(-pos.x, -pos.y, -pos.z);
                     for (ChunkPos unloadedPos : ScanCommand.unloadedChunks){
@@ -57,7 +72,7 @@ public class ArenascannerClient implements ClientModInitializer {
 
                     }
                     for (BlockPos block : ScanCommand.selectedBlocks)
-                        RenderUtil.renderBlock(block, context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(),14423100, 0.5f);
+                        RenderUtil.renderBlock(block, context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(),14423100, 0.2f);
                     context.matrixStack().pop();
                 }catch (Exception ignored){
 

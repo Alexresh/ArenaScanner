@@ -96,7 +96,6 @@ public class ScanCommand {
                 }
             }
         }
-        //player.sendMessage(Text.literal("Founds " + selectedBlocks.size() + " blocks, unloaded chunks: " + unloadedChunks.size()).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
         return 1;
     }
     private static void stopScan(ClientPlayerEntity player){
@@ -111,44 +110,46 @@ public class ScanCommand {
 
         if((chunkPos.x >= range.getMinX() >> 4) && (chunkPos.x <= range.getMaxX() >> 4) && (chunkPos.z >= range.getMinZ() >> 4) && (chunkPos.z <= range.getMaxZ() >> 4)){
             unloadedChunks.remove(chunkPos);
-            int size = selectedBlocks.size();
-            for (int i = 0; i < size; i++) {
-                if(selectedBlocks.get(i).getX() >> 4 == chunkPos.x && selectedBlocks.get(i).getZ() >> 4 == chunkPos.z && !whitelist.contains(world.getBlockState(selectedBlocks.get(i)).getBlock())){
-                    selectedBlocks.remove(selectedBlocks.get(i));
-                    i--;
-                    size--;
-                }
-            }
+            updateChunk(chunkPos, world);
             for (int x = 0; x < 16; x++) {
                 for (int y = range.getMinY(); y <= range.getMaxY(); y++) {
                     for (int z = 0; z < 16; z++) {
                         BlockPos blockPos = new BlockPos(chunkPos.x * 16 + x, y, chunkPos.z * 16 + z);
                         Block block = world.getBlockState(blockPos).getBlock();
-                        if(blockPos.getX() <= range.getMaxX() && blockPos.getX() >= range.getMinX() &&
-                                blockPos.getY() <= range.getMaxY() && blockPos.getY() >= range.getMinY() &&
-                                blockPos.getZ() <= range.getMaxZ() && blockPos.getZ() >= range.getMinZ()){
-                            if (whitelist.contains(block)) {
-                                if(!selectedBlocks.contains(blockPos)){
-                                    selectedBlocks.add(blockPos);
-                                }
-                            }
-                        }
-
-
+                        processBlock(blockPos, block);
                     }
                 }
             }
-            //player.sendMessage(Text.literal(+ selectedBlocks.size() + " blocks found unloaded chunks: " + unloadedChunks.size() + " [" + unloadedChunks.get(0).getCenterX() + " ").setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
             if(!unloadedChunks.isEmpty()){
                 player.sendMessage(Text.literal("%d blocks found. Unloaded chunks: %d [%d,%d] [%d,%d]".formatted(selectedBlocks.size(), unloadedChunks.size(), unloadedChunks.get(0).getCenterX(), unloadedChunks.get(0).getCenterZ(), unloadedChunks.get(unloadedChunks.size() - 1).getCenterX(), unloadedChunks.get(unloadedChunks.size() - 1).getCenterZ())).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
             }else{
                 player.sendMessage(Text.literal("%d blocks found.".formatted(selectedBlocks.size())).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
             }
-            //if(selectedBlocks.isEmpty() && unloadedChunks.isEmpty()) stopScan(player);
         }
+    }
 
-        //processedChunks.add(chunkPos);
+    public static void updateChunk(ChunkPos chunkPos, ClientWorld world){
+        int size = selectedBlocks.size();
+        for (int i = 0; i < size; i++) {
+            if(selectedBlocks.get(i).getX() >> 4 == chunkPos.x && selectedBlocks.get(i).getZ() >> 4 == chunkPos.z && !whitelist.contains(world.getBlockState(selectedBlocks.get(i)).getBlock())){
+                selectedBlocks.remove(selectedBlocks.get(i));
+                i--;
+                size--;
+            }
+        }
+    }
 
+    public static void processBlock(BlockPos blockPos, Block block){
+        if(range == null || whitelist == null || whitelist.isEmpty()) return;
+        if(blockPos.getX() <= range.getMaxX() && blockPos.getX() >= range.getMinX() &&
+                blockPos.getY() <= range.getMaxY() && blockPos.getY() >= range.getMinY() &&
+                blockPos.getZ() <= range.getMaxZ() && blockPos.getZ() >= range.getMinZ()){
+            if (whitelist.contains(block)) {
+                if(!selectedBlocks.contains(blockPos)){
+                    selectedBlocks.add(blockPos);
+                }
+            }
+        }
     }
 
 
