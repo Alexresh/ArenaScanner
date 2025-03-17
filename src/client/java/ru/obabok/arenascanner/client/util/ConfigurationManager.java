@@ -32,6 +32,7 @@ public class ConfigurationManager {
             // Если файл не существует, копируем его из ресурсов
             try {
                 Path source = FabricLoader.getInstance().getModContainer(ArenascannerClient.MOD_ID).get().findPath("assets/arenascanner/config/config.json").get();
+                CONFIG_FILE.mkdirs();
                 Files.copy(source, CONFIG_FILE.toPath(), StandardCopyOption.REPLACE_EXISTING);
             } catch (IOException e) {
                 ArenascannerClient.LOGGER.error(e.getMessage());
