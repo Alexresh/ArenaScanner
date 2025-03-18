@@ -149,11 +149,22 @@ public class ScanCommand {
     public static void updateChunk(ChunkPos chunkPos, ClientWorld world){
         int size = selectedBlocks.size();
         for (int i = 0; i < size; i++) {
-            if(selectedBlocks.get(i).getX() >> 4 == chunkPos.x && selectedBlocks.get(i).getZ() >> 4 == chunkPos.z && !whitelist.contains(world.getBlockState(selectedBlocks.get(i)).getBlock())){
-                selectedBlocks.remove(selectedBlocks.get(i));
-                i--;
-                size--;
-            }
+            if(selectedBlocks.get(i).getX() >> 4 == chunkPos.x && selectedBlocks.get(i).getZ() >> 4 == chunkPos.z){
+                if(worldEaterMode){
+                    if(!((getBlastResistance(world.getBlockState(selectedBlocks.get(i)), world.getBlockState(selectedBlocks.get(i)).getFluidState()).isPresent()
+                            && getBlastResistance(world.getBlockState(selectedBlocks.get(i)), world.getBlockState(selectedBlocks.get(i)).getFluidState()).get() > 9)
+                            && world.getBlockState(selectedBlocks.get(i)).getPistonBehavior() != PistonBehavior.DESTROY)){
+                        selectedBlocks.remove(selectedBlocks.get(i));
+                        i--;
+                        size--;
+                    }
+                } else if (!whitelist.contains(world.getBlockState(selectedBlocks.get(i)).getBlock())) {
+                    selectedBlocks.remove(selectedBlocks.get(i));
+                    i--;
+                    size--;
+                }
+
+           }
         }
     }
 
