@@ -66,7 +66,7 @@ public class ArenascannerClient implements ClientModInitializer {
         });
 
         ClientChunkEvents.CHUNK_LOAD.register((clientWorld, worldChunk) -> {
-            ScanCommand.processChunk(MinecraftClient.getInstance().player, clientWorld, worldChunk.getPos());
+            ScanCommand.processChunk(clientWorld, worldChunk.getPos());
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(minecraftClient -> {

@@ -108,7 +108,7 @@ public class ScanCommand {
             for (int chunkZ = startChunkZ; chunkZ <= endChunkZ; chunkZ++) {
                 ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
                 if (world.getChunkManager().isChunkLoaded(chunkX, chunkZ)) {
-                    processChunk(player, world, chunkPos);
+                    processChunk(world, chunkPos);
                 }else{
                     unloadedChunks.add(chunkPos);
                 }
@@ -123,7 +123,7 @@ public class ScanCommand {
         ArenascannerClient.render = false;
     }
 
-    public static void processChunk(ClientPlayerEntity player, ClientWorld world, ChunkPos chunkPos){
+    public static void processChunk(ClientWorld world, ChunkPos chunkPos){
         if(range == null || world == null || whitelist == null || chunkPos == null) return;
 
         if((chunkPos.x >= range.getMinX() >> 4) && (chunkPos.x <= range.getMaxX() >> 4) && (chunkPos.z >= range.getMinZ() >> 4) && (chunkPos.z <= range.getMaxZ() >> 4)){
@@ -137,7 +137,6 @@ public class ScanCommand {
                     }
                 }
             }
-
         }
     }
 
