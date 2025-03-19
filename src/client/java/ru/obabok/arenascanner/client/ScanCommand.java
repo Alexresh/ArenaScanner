@@ -139,11 +139,6 @@ public class ScanCommand {
             }
 
         }
-        if(!unloadedChunks.isEmpty()){
-            player.sendMessage(Text.literal("%d blocks found. Unloaded chunks: %d [%d,%d] [%d,%d]".formatted(selectedBlocks.size(), unloadedChunks.size(), unloadedChunks.get(0).getCenterX(), unloadedChunks.get(0).getCenterZ(), unloadedChunks.get(unloadedChunks.size() - 1).getCenterX(), unloadedChunks.get(unloadedChunks.size() - 1).getCenterZ())).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
-        }else{
-            player.sendMessage(Text.literal("%d blocks found.".formatted(selectedBlocks.size())).setStyle(Style.EMPTY.withColor(Formatting.AQUA)), true);
-        }
     }
 
     public static void updateChunk(ChunkPos chunkPos, ClientWorld world){

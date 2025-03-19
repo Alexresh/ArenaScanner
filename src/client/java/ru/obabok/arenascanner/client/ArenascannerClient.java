@@ -7,6 +7,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.entity.event.v1.EntityElytraEvents;
+import net.fabricmc.fabric.api.entity.event.v1.FabricElytraItem;
 import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -14,8 +16,13 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.TntEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ElytraItem;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
@@ -68,13 +75,34 @@ public class ArenascannerClient implements ClientModInitializer {
             }
         });
 
+
         HudRenderCallback.EVENT.register((drawContext, v) -> {
-            if(render && CONFIG.hudRenderUnloadChunks && !ScanCommand.unloadedChunks.isEmpty()){
-                for (int i = 0; i < Math.min(ScanCommand.unloadedChunks.size(), CONFIG.hudRenderUnloadChunksLimit); i++) {
-                    drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(ScanCommand.unloadedChunks.get(i).toString()), (CONFIG.hudRenderUnloadChunksPosX >= 0 ? CONFIG.hudRenderUnloadChunksPosX : (drawContext.getScaledWindowWidth() + CONFIG.hudRenderUnloadChunksPosX)), (CONFIG.hudRenderUnloadChunksPosY >= 0 ? CONFIG.hudRenderUnloadChunksPosY : (drawContext.getScaledWindowHeight() + CONFIG.hudRenderUnloadChunksPosY)) + i * 10,25252525);
+            if (render && CONFIG.hudRender && !ScanCommand.unloadedChunks.isEmpty()) {
+                int windowWidth = drawContext.getScaledWindowWidth();
+                int windowHeight = drawContext.getScaledWindowHeight();
+                int hudStartX = CONFIG.hudRenderPosX >= 0
+                        ? CONFIG.hudRenderPosX
+                        : windowWidth + CONFIG.hudRenderPosX;
+                int hudStartY = CONFIG.hudRenderPosY >= 0
+                        ? CONFIG.hudRenderPosY
+                        : windowHeight + CONFIG.hudRenderPosY;
+
+                BlockPos pos = ScanCommand.selectedBlocks.get(0);
+                String selectedBlocksText = "Selected blocks: %d -> [%d, %d, %d]".formatted(ScanCommand.selectedBlocks.size(), pos.getX(), pos.getY(), pos.getZ());
+                String unloadedChunksText = "Unloaded chunks: %d -> %s".formatted(ScanCommand.unloadedChunks.size(), ScanCommand.unloadedChunks.get(0).toString());
+
+                int textWidthSelected = MinecraftClient.getInstance().textRenderer.getWidth(selectedBlocksText);
+                int textWidthUnloaded = MinecraftClient.getInstance().textRenderer.getWidth(unloadedChunksText);
+
+                if (CONFIG.hudRenderPosX < 0) {
+                    hudStartX -= Math.max(textWidthSelected, textWidthUnloaded);
                 }
+
+                drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(selectedBlocksText), hudStartX, hudStartY, 0xFFFFFFFF);
+                drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(unloadedChunksText), hudStartX, hudStartY + 10, 0xFFFFFFFF);
             }
         });
+
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
             if(render && (!ScanCommand.unloadedChunks.isEmpty() || !ScanCommand.selectedBlocks.isEmpty())){
                 try {

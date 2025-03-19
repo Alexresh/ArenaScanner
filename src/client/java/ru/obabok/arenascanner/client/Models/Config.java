@@ -5,10 +5,9 @@ public class Config {
     public int unloadedChunkY;
     public String unloadedChunkColor;
     public float unloadedChunkScale;
-    public boolean hudRenderUnloadChunks;
-    public int hudRenderUnloadChunksPosX;
-    public int hudRenderUnloadChunksPosY;
-    public int hudRenderUnloadChunksLimit;
+    public boolean hudRender;
+    public int hudRenderPosX;
+    public int hudRenderPosY;
 
     public String selectedBlocksColor;
     public int selectedBlocksViewDistance;
