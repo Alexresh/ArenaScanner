@@ -39,7 +39,7 @@ public class ConfigurationManager {
                 ArenascannerClient.LOGGER.error(e.getMessage());
             }
         }
-
+        ChunkScheduler.updatePeriod(config.processChunkCooldown);
         return config;
     }
 

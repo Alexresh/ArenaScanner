@@ -11,6 +11,7 @@ public class Config {
 
     public String selectedBlocksColor;
     public int selectedBlocksViewDistance;
+    public long processChunkCooldown;
 
 
 }

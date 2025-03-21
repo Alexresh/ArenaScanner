@@ -7,6 +7,6 @@
   "hudRenderPosX": 0,
   "hudRenderPosY": 0,
   "selectedBlocksColor": "#4dd091",
-  "selectedBlocksViewDistance": -1
-
+  "selectedBlocksViewDistance": -1,
+  "processChunkCooldown": 30
 }

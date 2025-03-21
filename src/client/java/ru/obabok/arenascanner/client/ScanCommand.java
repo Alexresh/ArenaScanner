@@ -15,25 +15,21 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.command.CommandRegistryAccess;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.registry.Registries;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import ru.obabok.arenascanner.client.util.ConfigurationManager;
 import ru.obabok.arenascanner.client.util.FileSuggestionProvider;
+import ru.obabok.arenascanner.client.util.RenderUtil;
+import ru.obabok.arenascanner.client.util.ChunkScheduler;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
@@ -89,7 +85,7 @@ public class ScanCommand {
                             ArenascannerClient.CONFIG = ConfigurationManager.loadConfig();
                             commandContext.getSource().getPlayer().sendMessage(Text.literal("Reloaded"));
                             return 1;}))
-                .then(literal("toggle_render").executes(commandContext -> {ArenascannerClient.toggleRender(commandContext.getSource().getPlayer()); return 1;})));
+                .then(literal("toggle_render").executes(commandContext -> {RenderUtil.toggleRender(commandContext.getSource().getPlayer()); return 1;})));
 
     }
 
@@ -103,7 +99,7 @@ public class ScanCommand {
         whitelist = loadWhitelist(player, filename);
         if(whitelist == null) return 0;
 
-        ArenascannerClient.render = true;
+        RenderUtil.render = true;
         int startChunkX = range.getMinX() >> 4;
         int startChunkZ = range.getMinZ() >> 4;
         int endChunkX = range.getMaxX() >> 4;
@@ -113,10 +109,10 @@ public class ScanCommand {
             for (int chunkZ = startChunkZ; chunkZ <= endChunkZ; chunkZ++) {
                 ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
                 if (world.getChunkManager().isChunkLoaded(chunkX, chunkZ)) {
-                    ArenascannerClient.chunkQueue.add(chunkPos);
-                }else{
-                    unloadedChunks.add(chunkPos);
+                    ChunkScheduler.addChunkToProcess(chunkPos);
                 }
+                unloadedChunks.add(chunkPos);
+
             }
         }
 
@@ -131,7 +127,7 @@ public class ScanCommand {
         whitelist = loadWhitelist(player, filename);
         if(whitelist == null) return 0;
 
-        ArenascannerClient.render = true;
+        RenderUtil.render = true;
         int startChunkX = range.getMinX() >> 4;
         int startChunkZ = range.getMinZ() >> 4;
         int endChunkX = range.getMaxX() >> 4;
@@ -154,7 +150,8 @@ public class ScanCommand {
         selectedBlocks.clear();
         unloadedChunks.clear();
         range = null;
-        ArenascannerClient.render = false;
+        RenderUtil.render = false;
+        RenderUtil.clearRender();
     }
 
     public static void processChunk(ClientWorld world, ChunkPos chunkPos){
@@ -162,7 +159,7 @@ public class ScanCommand {
         if(!world.getChunkManager().isChunkLoaded(chunkPos.x, chunkPos.z)) return;
         if((chunkPos.x >= range.getMinX() >> 4) && (chunkPos.x <= range.getMaxX() >> 4) && (chunkPos.z >= range.getMinZ() >> 4) && (chunkPos.z <= range.getMaxZ() >> 4)){
             unloadedChunks.remove(chunkPos);
-            //updateChunk(chunkPos, world);
+            updateChunk(chunkPos, world);
             for (int x = 0; x < 16; x++) {
                 for (int y = range.getMinY(); y <= range.getMaxY(); y++) {
                     for (int z = 0; z < 16; z++) {
