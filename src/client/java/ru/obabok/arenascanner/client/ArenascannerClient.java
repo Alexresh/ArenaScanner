@@ -7,8 +7,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.fabricmc.fabric.api.entity.event.v1.EntityElytraEvents;
-import net.fabricmc.fabric.api.entity.event.v1.FabricElytraItem;
 import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -16,13 +14,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.TntEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ElytraItem;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.math.BlockPos;
@@ -36,7 +27,9 @@ import ru.obabok.arenascanner.client.mixin.WorldRendererAccessor;
 import ru.obabok.arenascanner.client.util.ConfigurationManager;
 import ru.obabok.arenascanner.client.util.RenderUtil;
 
-
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.*;
 
 
 public class ArenascannerClient implements ClientModInitializer {
@@ -45,6 +38,11 @@ public class ArenascannerClient implements ClientModInitializer {
     public static KeyBinding renderKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.arena_scanner.render", GLFW.GLFW_KEY_UNKNOWN, "category.arena_scanner"));
     public static boolean render = false;
     public static Config CONFIG;
+
+    public static final Queue<ChunkPos> chunkQueue = new ConcurrentLinkedQueue<>();
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private static final List<BlockPos> renderBlocksList = new CopyOnWriteArrayList<>();
+    private static final List<ChunkPos> renderChunksList = new CopyOnWriteArrayList<>();
 
     @Override
     public void onInitializeClient() {
@@ -65,9 +63,28 @@ public class ArenascannerClient implements ClientModInitializer {
             return ActionResult.PASS;
         });
 
+//        ClientChunkEvents.CHUNK_LOAD.register((clientWorld, worldChunk) -> {
+//            ScanCommand.processChunk(clientWorld, worldChunk.getPos());
+//        });
+
         ClientChunkEvents.CHUNK_LOAD.register((clientWorld, worldChunk) -> {
-            ScanCommand.processChunk(clientWorld, worldChunk.getPos());
+            if(ScanCommand.range != null)
+                chunkQueue.add(worldChunk.getPos());
         });
+
+        scheduler.scheduleAtFixedRate(() -> {
+            ChunkPos chunkPos = chunkQueue.poll();
+            if (chunkPos != null) {
+                ScanCommand.processChunk(MinecraftClient.getInstance().world, chunkPos);
+                renderBlocksList.clear();
+                renderChunksList.clear();
+                renderBlocksList.addAll(ScanCommand.selectedBlocks);
+                renderChunksList.addAll(ScanCommand.unloadedChunks);
+            }
+
+        }, 0, 30, TimeUnit.MILLISECONDS);
+
+
 
         ClientTickEvents.END_CLIENT_TICK.register(minecraftClient -> {
             if(renderKey.wasPressed()){
@@ -105,24 +122,32 @@ public class ArenascannerClient implements ClientModInitializer {
                     }
                     drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(unloadedChunksText), posX, hudStartY + 10, 0xFFFFFFFF);
                 }
+                if(!chunkQueue.isEmpty()){
+                    String processedChunksText = "ProcessedChunks: %d".formatted(chunkQueue.size());
+                    int textWidthUnloaded = MinecraftClient.getInstance().textRenderer.getWidth(processedChunksText);
+                    int posX = hudStartX;
+                    if (CONFIG.hudRenderPosX < 0) {
+                        posX -= textWidthUnloaded;
+                    }
+                    drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(processedChunksText), posX, hudStartY + 20, 0xFFFFFFFF);
+                }
             }
         });
 
         WorldRenderEvents.AFTER_ENTITIES.register(context -> {
-            if(render && (!ScanCommand.unloadedChunks.isEmpty() || !ScanCommand.selectedBlocks.isEmpty())){
+            if(render && (!renderChunksList.isEmpty() || !renderBlocksList.isEmpty())){
                 try {
 
                     WorldRendererAccessor worldRenderer = (WorldRendererAccessor) context.worldRenderer();
                     Vec3d pos = context.camera().getPos();
                     context.matrixStack().push();
                     context.matrixStack().translate(-pos.x, -pos.y, -pos.z);
-                    for (ChunkPos unloadedPos : ScanCommand.unloadedChunks){
+                    for (ChunkPos unloadedPos : renderChunksList){
                         if(context.camera().getPos().distanceTo(new Vec3d(unloadedPos.getCenterX(), context.camera().getBlockPos().getY(), unloadedPos.getCenterZ())  ) < CONFIG.unloadedChunkViewDistance) {
                             RenderUtil.renderBlock(unloadedPos.getCenterAtY(context.camera().getBlockPos().getY() + CONFIG.unloadedChunkY), context.matrixStack(), worldRenderer.getBufferBuilders().getOutlineVertexConsumers(), CONFIG.unloadedChunkColor, CONFIG.unloadedChunkScale);
                         }
-
                     }
-                    for (BlockPos block : ScanCommand.selectedBlocks){
+                    for (BlockPos block : renderBlocksList){
                         float scale = (float) Math.min(1, pos.squaredDistanceTo(block.toCenterPos()) / 500);
                         scale = Math.max(scale, 0.05f);
                         if(pos.distanceTo(block.toCenterPos()) < CONFIG.selectedBlocksViewDistance || CONFIG.selectedBlocksViewDistance == -1){

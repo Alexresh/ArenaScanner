@@ -30,6 +30,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
@@ -50,14 +54,14 @@ public class ScanCommand {
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
                                         .executes(context ->{
                                             worldEaterMode = false;
-                                            return execute(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
+                                            return executeAsync(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
                                                     CBlockPosArgumentType.getCBlockPos(context,"from"),
                                                     CBlockPosArgumentType.getCBlockPos(context, "to")),
                                                     StringArgumentType.getString(context, "whitelist"));}))
                                 .then(literal("worldEater")
                                         .executes(context ->{
                                             worldEaterMode = true;
-                                            return execute(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
+                                            return executeAsync(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
                                                     CBlockPosArgumentType.getCBlockPos(context,"from"),
                                                     CBlockPosArgumentType.getCBlockPos(context, "to")),
                                                     "");}))))
@@ -89,7 +93,36 @@ public class ScanCommand {
 
     }
 
+    private static int executeAsync(ClientWorld world, ClientPlayerEntity player, BlockBox _range, String filename) throws CommandSyntaxException {
+        if(range != _range){
+            stopScan();
+            range = _range;
+        }
 
+        if (world == null) return 0;
+        whitelist = loadWhitelist(player, filename);
+        if(whitelist == null) return 0;
+
+        ArenascannerClient.render = true;
+        int startChunkX = range.getMinX() >> 4;
+        int startChunkZ = range.getMinZ() >> 4;
+        int endChunkX = range.getMaxX() >> 4;
+        int endChunkZ = range.getMaxZ() >> 4;
+
+        for (int chunkX = startChunkX; chunkX <= endChunkX; chunkX++) {
+            for (int chunkZ = startChunkZ; chunkZ <= endChunkZ; chunkZ++) {
+                ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
+                if (world.getChunkManager().isChunkLoaded(chunkX, chunkZ)) {
+                    ArenascannerClient.chunkQueue.add(chunkPos);
+                }else{
+                    unloadedChunks.add(chunkPos);
+                }
+            }
+        }
+
+
+        return 1;
+    }
 
     private static int execute(ClientWorld world, ClientPlayerEntity player, BlockBox _range, String filename) throws CommandSyntaxException {
         stopScan();
@@ -116,6 +149,7 @@ public class ScanCommand {
         }
         return 1;
     }
+
     private static void stopScan(){
         selectedBlocks.clear();
         unloadedChunks.clear();
@@ -125,10 +159,10 @@ public class ScanCommand {
 
     public static void processChunk(ClientWorld world, ChunkPos chunkPos){
         if(range == null || world == null || whitelist == null || chunkPos == null) return;
-
+        if(!world.getChunkManager().isChunkLoaded(chunkPos.x, chunkPos.z)) return;
         if((chunkPos.x >= range.getMinX() >> 4) && (chunkPos.x <= range.getMaxX() >> 4) && (chunkPos.z >= range.getMinZ() >> 4) && (chunkPos.z <= range.getMaxZ() >> 4)){
             unloadedChunks.remove(chunkPos);
-            updateChunk(chunkPos, world);
+            //updateChunk(chunkPos, world);
             for (int x = 0; x < 16; x++) {
                 for (int y = range.getMinY(); y <= range.getMaxY(); y++) {
                     for (int z = 0; z < 16; z++) {
