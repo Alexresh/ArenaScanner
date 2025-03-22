@@ -23,7 +23,7 @@ public class HudRender {
                     ? CONFIG.hudRenderPosY
                     : windowHeight + CONFIG.hudRenderPosY;
             if(!ScanCommand.selectedBlocks.isEmpty()){
-                BlockPos pos = ScanCommand.selectedBlocks.get(0);
+                BlockPos pos = ScanCommand.selectedBlocks.iterator().next();
                 String selectedBlocksText = "Selected blocks: %d -> [%d, %d, %d]".formatted(ScanCommand.selectedBlocks.size(), pos.getX(), pos.getY(), pos.getZ());
                 int textWidthSelected = MinecraftClient.getInstance().textRenderer.getWidth(selectedBlocksText);
                 int posX = hudStartX;
@@ -33,7 +33,7 @@ public class HudRender {
                 drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(selectedBlocksText), posX, hudStartY, 0xFFFFFFFF);
             }
             if(!ScanCommand.unloadedChunks.isEmpty()){
-                String unloadedChunksText = "Unloaded chunks: %d -> %s".formatted(ScanCommand.unloadedChunks.size(), ScanCommand.unloadedChunks.get(0).toString());
+                String unloadedChunksText = "Unloaded chunks: %d -> %s".formatted(ScanCommand.unloadedChunks.size(), ScanCommand.unloadedChunks.iterator().next().toString());
                 int textWidthUnloaded = MinecraftClient.getInstance().textRenderer.getWidth(unloadedChunksText);
                 int posX = hudStartX;
                 if (CONFIG.hudRenderPosX < 0) {

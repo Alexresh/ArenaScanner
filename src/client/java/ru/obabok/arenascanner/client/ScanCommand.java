@@ -36,8 +36,8 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.lit
 
 
 public class ScanCommand {
-    public static final ArrayList<BlockPos> selectedBlocks = new ArrayList<>();
-    public static final ArrayList<ChunkPos> unloadedChunks = new ArrayList<>();
+    public static final HashSet<BlockPos> selectedBlocks = new HashSet<>();
+    public static final HashSet<ChunkPos> unloadedChunks = new HashSet<>();
     public static ArrayList<Block> whitelist = new ArrayList<>();
     public static BlockBox range;
     private static boolean worldEaterMode = false;
@@ -90,11 +90,8 @@ public class ScanCommand {
     }
 
     private static int executeAsync(ClientWorld world, ClientPlayerEntity player, BlockBox _range, String filename) throws CommandSyntaxException {
-        if(range != _range){
-            stopScan();
-            range = _range;
-        }
-
+        stopScan();
+        range = _range;
         if (world == null) return 0;
         whitelist = loadWhitelist(player, filename);
         if(whitelist == null) return 0;
@@ -172,24 +169,20 @@ public class ScanCommand {
     }
 
     public static void updateChunk(ChunkPos chunkPos, ClientWorld world){
-        int size = selectedBlocks.size();
-        for (int i = 0; i < size; i++) {
-            if(selectedBlocks.get(i).getX() >> 4 == chunkPos.x && selectedBlocks.get(i).getZ() >> 4 == chunkPos.z){
-                if(worldEaterMode){
-                    if(!((getBlastResistance(world.getBlockState(selectedBlocks.get(i)), world.getBlockState(selectedBlocks.get(i)).getFluidState()).isPresent()
-                            && getBlastResistance(world.getBlockState(selectedBlocks.get(i)), world.getBlockState(selectedBlocks.get(i)).getFluidState()).get() > 9)
-                            && world.getBlockState(selectedBlocks.get(i)).getPistonBehavior() != PistonBehavior.DESTROY)){
-                        selectedBlocks.remove(selectedBlocks.get(i));
-                        i--;
-                        size--;
+        Iterator<BlockPos> iterator = selectedBlocks.iterator();
+        while (iterator.hasNext()) {
+            BlockPos blockPos = iterator.next();
+            if (blockPos.getX() >> 4 == chunkPos.x && blockPos.getZ() >> 4 == chunkPos.z) {
+                if (worldEaterMode) {
+                    if (!((getBlastResistance(world.getBlockState(blockPos), world.getBlockState(blockPos).getFluidState()).isPresent()
+                            && getBlastResistance(world.getBlockState(blockPos), world.getBlockState(blockPos).getFluidState()).get() > 9)
+                            && world.getBlockState(blockPos).getPistonBehavior() != PistonBehavior.DESTROY)) {
+                        iterator.remove();
                     }
-                } else if (!whitelist.contains(world.getBlockState(selectedBlocks.get(i)).getBlock())) {
-                    selectedBlocks.remove(selectedBlocks.get(i));
-                    i--;
-                    size--;
+                } else if (!whitelist.contains(world.getBlockState(blockPos).getBlock())) {
+                    iterator.remove();
                 }
-
-           }
+            }
         }
     }
 
@@ -199,13 +192,10 @@ public class ScanCommand {
                 blockPos.getY() <= range.getMaxY() && blockPos.getY() >= range.getMinY() &&
                 blockPos.getZ() <= range.getMaxZ() && blockPos.getZ() >= range.getMinZ()){
             if (whitelist.contains(blockState.getBlock())) {
-                if(!selectedBlocks.contains(blockPos)){
-                    selectedBlocks.add(blockPos);
-                }
+                selectedBlocks.add(blockPos);
             }
 
-            if(worldEaterMode && !selectedBlocks.contains(blockPos)
-                    && (getBlastResistance(blockState, blockState.getFluidState()).isPresent() && getBlastResistance(blockState, blockState.getFluidState()).get() > 9)
+            if(worldEaterMode && (getBlastResistance(blockState, blockState.getFluidState()).isPresent() && getBlastResistance(blockState, blockState.getFluidState()).get() > 9)
                     && blockState.getPistonBehavior() != PistonBehavior.DESTROY){
                 selectedBlocks.add(blockPos);
             }

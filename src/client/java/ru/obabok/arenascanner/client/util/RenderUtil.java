@@ -20,6 +20,7 @@ import ru.obabok.arenascanner.client.mixin.WorldRendererAccessor;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -38,7 +39,7 @@ public class RenderUtil {
                 context.matrixStack().push();
                 context.matrixStack().translate(-context.camera().getPos().x, -context.camera().getPos().y, -context.camera().getPos().z);
                 for (ChunkPos unloadedPos : renderChunksList){
-                    if(context.camera().getPos().distanceTo(new Vec3d(unloadedPos.getCenterX(), context.camera().getBlockPos().getY(), unloadedPos.getCenterZ())) < CONFIG.unloadedChunkViewDistance) {
+                    if(unloadedPos != null && context.camera().getPos().distanceTo(new Vec3d(unloadedPos.getCenterX(), context.camera().getBlockPos().getY(), unloadedPos.getCenterZ())) < CONFIG.unloadedChunkViewDistance) {
                         RenderUtil.renderBlock(unloadedPos.getCenterAtY(context.camera().getBlockPos().getY() + CONFIG.unloadedChunkY), context.matrixStack(), ((WorldRendererAccessor)context.worldRenderer()).getBufferBuilders().getOutlineVertexConsumers(), CONFIG.unloadedChunkColor, CONFIG.unloadedChunkScale);
                     }
                 }
@@ -98,10 +99,10 @@ public class RenderUtil {
     }
 
 
-    public static void addAllRenderBlocks(ArrayList<BlockPos> blocks) {
+    public static void addAllRenderBlocks(HashSet<BlockPos> blocks) {
         renderBlocksList.addAll(blocks);
     }
-    public static void addAllRenderChunks(ArrayList<ChunkPos> chunkPos) {
+    public static void addAllRenderChunks(HashSet<ChunkPos> chunkPos) {
         renderChunksList.addAll(chunkPos);
     }
 }
