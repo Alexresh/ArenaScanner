@@ -4,8 +4,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkPos;
 import ru.obabok.arenascanner.client.util.ChunkScheduler;
 import ru.obabok.arenascanner.client.util.RenderUtil;
+
+import java.util.Iterator;
 
 import static ru.obabok.arenascanner.client.ArenascannerClient.*;
 
@@ -22,24 +25,37 @@ public class HudRender {
             int hudStartY = CONFIG.hudRenderPosY >= 0
                     ? CONFIG.hudRenderPosY
                     : windowHeight + CONFIG.hudRenderPosY;
-            if(!ScanCommand.selectedBlocks.isEmpty()){
-                BlockPos pos = ScanCommand.selectedBlocks.iterator().next();
-                String selectedBlocksText = "Selected blocks: %d -> [%d, %d, %d]".formatted(ScanCommand.selectedBlocks.size(), pos.getX(), pos.getY(), pos.getZ());
-                int textWidthSelected = MinecraftClient.getInstance().textRenderer.getWidth(selectedBlocksText);
-                int posX = hudStartX;
-                if (CONFIG.hudRenderPosX < 0) {
-                    posX -= textWidthSelected;
+            try {
+                if(!ScanCommand.selectedBlocks.isEmpty()){
+                    BlockPos pos = ScanCommand.selectedBlocks.iterator().next();
+                    String selectedBlocksText = "Selected blocks: %d -> [%d, %d, %d]".formatted(ScanCommand.selectedBlocks.size(), pos.getX(), pos.getY(), pos.getZ());
+                    int textWidthSelected = MinecraftClient.getInstance().textRenderer.getWidth(selectedBlocksText);
+                    int posX = hudStartX;
+                    if (CONFIG.hudRenderPosX < 0) {
+                        posX -= textWidthSelected;
+                    }
+                    drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(selectedBlocksText), posX, hudStartY, 0xFFFFFFFF);
                 }
-                drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(selectedBlocksText), posX, hudStartY, 0xFFFFFFFF);
+            }catch (Exception exception){
+                LOGGER.error(exception.getMessage());
             }
+
             if(!ScanCommand.unloadedChunks.isEmpty()){
-                String unloadedChunksText = "Unloaded chunks: %d -> %s".formatted(ScanCommand.unloadedChunks.size(), ScanCommand.unloadedChunks.iterator().next().toString());
-                int textWidthUnloaded = MinecraftClient.getInstance().textRenderer.getWidth(unloadedChunksText);
-                int posX = hudStartX;
-                if (CONFIG.hudRenderPosX < 0) {
-                    posX -= textWidthUnloaded;
+                try {
+                    Iterator<ChunkPos> iterator = ScanCommand.unloadedChunks.iterator();
+                    if(iterator.hasNext()){
+                        String unloadedChunksText = "Unloaded chunks: %d -> %s".formatted(ScanCommand.unloadedChunks.size(), iterator.next().toString());
+                        int textWidthUnloaded = MinecraftClient.getInstance().textRenderer.getWidth(unloadedChunksText);
+                        int posX = hudStartX;
+                        if (CONFIG.hudRenderPosX < 0) {
+                            posX -= textWidthUnloaded;
+                        }
+                        drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(unloadedChunksText), posX, hudStartY + 10, 0xFFFFFFFF);
+                    }
+                }catch (Exception exception){
+                    LOGGER.error(exception.getMessage());
                 }
-                drawContext.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, Text.literal(unloadedChunksText), posX, hudStartY + 10, 0xFFFFFFFF);
+
             }
             if(!ChunkScheduler.getChunkQueue().isEmpty()){
                 String processedChunksText = "ProcessedChunks: %d".formatted(ChunkScheduler.getChunkQueue().size());

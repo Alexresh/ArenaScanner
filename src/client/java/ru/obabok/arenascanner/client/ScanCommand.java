@@ -47,36 +47,42 @@ public class ScanCommand {
         dispatcher.register(literal("scan")
                 .then(argument("from", CBlockPosArgumentType.blockPos())
                         .then(argument("to", CBlockPosArgumentType.blockPos())
-                                .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
-                                        .executes(context ->{
-                                            worldEaterMode = false;
-                                            return executeAsync(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
-                                                    CBlockPosArgumentType.getCBlockPos(context,"from"),
-                                                    CBlockPosArgumentType.getCBlockPos(context, "to")),
-                                                    StringArgumentType.getString(context, "whitelist"));}))
-                                .then(literal("worldEater")
-                                        .executes(context ->{
+                                .then(literal("whitelist")
+                                        .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
+                                                .executes(context -> {
+                                                    worldEaterMode = false;
+                                                    return executeAsync(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
+                                                                    CBlockPosArgumentType.getCBlockPos(context, "from"),
+                                                                    CBlockPosArgumentType.getCBlockPos(context, "to")),
+                                                            StringArgumentType.getString(context, "whitelist"));
+                                                })))
+                                .then(literal("worldEaterMode")
+                                        .executes(context -> {
                                             worldEaterMode = true;
                                             return executeAsync(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
-                                                    CBlockPosArgumentType.getCBlockPos(context,"from"),
-                                                    CBlockPosArgumentType.getCBlockPos(context, "to")),
-                                                    "");}))))
-                .then(literal("stop").executes(context -> { stopScan(); return 1;}))
+                                                            CBlockPosArgumentType.getCBlockPos(context, "from"),
+                                                            CBlockPosArgumentType.getCBlockPos(context, "to")),
+                                                    "");
+                                        }))))
+                .then(literal("stop").executes(context -> {
+                    stopScan();
+                    return 1;
+                }))
                 .then(literal("whitelists")
                         .then(literal("create")
                                 .then(argument("whitelist", StringArgumentType.string())
-                                        .executes(context -> createWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context,"whitelist")))))
+                                        .executes(context -> createWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist")))))
                         .then(literal("delete")
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
-                                        .executes(context -> deleteWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context,"whitelist")))))
+                                        .executes(context -> deleteWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist")))))
                         .then(literal("add_block")
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
                                         .then(argument("block", CBlockStateArgumentType.blockState(commandRegistryAccess))
-                                                .executes(context -> addToWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgumentType.getCBlockState(context,"block").getBlock())))))
+                                                .executes(context -> addToWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgumentType.getCBlockState(context, "block").getBlock())))))
                         .then(literal("remove_block")
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
                                         .then(argument("block", CBlockStateArgumentType.blockState(commandRegistryAccess))
-                                                .executes(context -> removeFromWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgumentType.getCBlockState(context,"block").getBlock())))))
+                                                .executes(context -> removeFromWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgumentType.getCBlockState(context, "block").getBlock())))))
                         .then(literal("print")
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
                                         .executes(context -> printWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"))))))
@@ -84,8 +90,12 @@ public class ScanCommand {
                         .executes(commandContext -> {
                             ArenascannerClient.CONFIG = ConfigurationManager.loadConfig();
                             commandContext.getSource().getPlayer().sendMessage(Text.literal("Reloaded"));
-                            return 1;}))
-                .then(literal("toggle_render").executes(commandContext -> {RenderUtil.toggleRender(commandContext.getSource().getPlayer()); return 1;})));
+                            return 1;
+                        }))
+                .then(literal("toggle_render").executes(commandContext -> {
+                    RenderUtil.toggleRender(commandContext.getSource().getPlayer());
+                    return 1;
+                })));
 
     }
 
@@ -114,32 +124,6 @@ public class ScanCommand {
         }
 
 
-        return 1;
-    }
-
-    private static int execute(ClientWorld world, ClientPlayerEntity player, BlockBox _range, String filename) throws CommandSyntaxException {
-        stopScan();
-        range = _range;
-        if (world == null) return 0;
-        whitelist = loadWhitelist(player, filename);
-        if(whitelist == null) return 0;
-
-        RenderUtil.render = true;
-        int startChunkX = range.getMinX() >> 4;
-        int startChunkZ = range.getMinZ() >> 4;
-        int endChunkX = range.getMaxX() >> 4;
-        int endChunkZ = range.getMaxZ() >> 4;
-
-        for (int chunkX = startChunkX; chunkX <= endChunkX; chunkX++) {
-            for (int chunkZ = startChunkZ; chunkZ <= endChunkZ; chunkZ++) {
-                ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
-                if (world.getChunkManager().isChunkLoaded(chunkX, chunkZ)) {
-                    processChunk(world, chunkPos);
-                }else{
-                    unloadedChunks.add(chunkPos);
-                }
-            }
-        }
         return 1;
     }
 
