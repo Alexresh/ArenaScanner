@@ -1,7 +1,6 @@
 package ru.obabok.arenascanner.client.util;
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
-import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.model.ModelPart;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.render.OutlineVertexConsumerProvider;
@@ -18,7 +17,6 @@ import net.minecraft.util.math.Vec3d;
 import ru.obabok.arenascanner.client.ArenascannerClient;
 import ru.obabok.arenascanner.client.mixin.WorldRendererAccessor;
 
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -61,7 +59,7 @@ public class RenderUtil {
     public static void toggleRender(ClientPlayerEntity player){
         render = !render;
         if(player != null)
-            player.sendMessage(Text.literal("Render whitelisted blocks: " + render));
+            player.sendMessage(Text.literal("Render whitelisted blocks: " + render), false);
     }
 
     public static void clearRender(){
@@ -76,7 +74,7 @@ public class RenderUtil {
         {
             matrices.push();
             matrices.translate(-0.5, -0.5, -0.5);
-            CUBE.renderCuboid(matrices.peek(), setColorFromHex(vertexConsumers, color), 0, OverlayTexture.DEFAULT_UV, 0, 0, 0, 0);
+            CUBE.renderCuboid(matrices.peek(), setColorFromHex(vertexConsumers, color), 0, OverlayTexture.DEFAULT_UV, 0);
             matrices.pop();
         }
         matrices.pop();

@@ -2,6 +2,7 @@ package ru.obabok.arenascanner.client;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
@@ -15,7 +16,7 @@ import static ru.obabok.arenascanner.client.ArenascannerClient.*;
 public class HudRender {
 
 
-    public static void render(DrawContext drawContext, float v) {
+    public static void render(DrawContext drawContext, RenderTickCounter renderTickCounter) {
         if (RenderUtil.render && CONFIG.hudRender) {
             int windowWidth = drawContext.getScaledWindowWidth();
             int windowHeight = drawContext.getScaledWindowHeight();

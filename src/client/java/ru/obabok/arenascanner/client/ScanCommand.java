@@ -3,8 +3,8 @@ package ru.obabok.arenascanner.client;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import dev.xpple.clientarguments.arguments.CBlockPosArgumentType;
-import dev.xpple.clientarguments.arguments.CBlockStateArgumentType;
+import dev.xpple.clientarguments.arguments.CBlockPosArgument;
+import dev.xpple.clientarguments.arguments.CBlockStateArgument;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -45,23 +45,23 @@ public class ScanCommand {
     public static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess commandRegistryAccess) {
 
         dispatcher.register(literal("scan")
-                .then(argument("from", CBlockPosArgumentType.blockPos())
-                        .then(argument("to", CBlockPosArgumentType.blockPos())
+                .then(argument("from", CBlockPosArgument.blockPos())
+                        .then(argument("to", CBlockPosArgument.blockPos())
                                 .then(literal("whitelist")
                                         .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
                                                 .executes(context -> {
                                                     worldEaterMode = false;
                                                     return executeAsync(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
-                                                                    CBlockPosArgumentType.getCBlockPos(context, "from"),
-                                                                    CBlockPosArgumentType.getCBlockPos(context, "to")),
+                                                                    CBlockPosArgument.getBlockPos(context, "from"),
+                                                                    CBlockPosArgument.getBlockPos(context, "to")),
                                                             StringArgumentType.getString(context, "whitelist"));
                                                 })))
                                 .then(literal("worldEaterMode")
                                         .executes(context -> {
                                             worldEaterMode = true;
                                             return executeAsync(context.getSource().getWorld(), context.getSource().getPlayer(), BlockBox.create(
-                                                            CBlockPosArgumentType.getCBlockPos(context, "from"),
-                                                            CBlockPosArgumentType.getCBlockPos(context, "to")),
+                                                            CBlockPosArgument.getBlockPos(context, "from"),
+                                                            CBlockPosArgument.getBlockPos(context, "to")),
                                                     "");
                                         }))))
                 .then(literal("stop").executes(context -> {
@@ -77,19 +77,19 @@ public class ScanCommand {
                                         .executes(context -> deleteWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist")))))
                         .then(literal("add_block")
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
-                                        .then(argument("block", CBlockStateArgumentType.blockState(commandRegistryAccess))
-                                                .executes(context -> addToWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgumentType.getCBlockState(context, "block").getBlock())))))
+                                        .then(argument("block", CBlockStateArgument.blockState(commandRegistryAccess))
+                                                .executes(context -> addToWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgument.getBlockState(context, "block").getState().getBlock())))))
                         .then(literal("remove_block")
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
-                                        .then(argument("block", CBlockStateArgumentType.blockState(commandRegistryAccess))
-                                                .executes(context -> removeFromWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgumentType.getCBlockState(context, "block").getBlock())))))
+                                        .then(argument("block", CBlockStateArgument.blockState(commandRegistryAccess))
+                                                .executes(context -> removeFromWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"), CBlockStateArgument.getBlockState(context, "block").getState().getBlock())))))
                         .then(literal("print")
                                 .then(argument("whitelist", StringArgumentType.string()).suggests(new FileSuggestionProvider())
                                         .executes(context -> printWhitelist(context.getSource().getPlayer(), StringArgumentType.getString(context, "whitelist"))))))
                 .then(literal("reload_config")
                         .executes(commandContext -> {
                             ArenascannerClient.CONFIG = ConfigurationManager.loadConfig();
-                            commandContext.getSource().getPlayer().sendMessage(Text.literal("Reloaded"));
+                            commandContext.getSource().getPlayer().sendMessage(Text.literal("Reloaded"), false);
                             return 1;
                         }))
                 .then(literal("toggle_render").executes(commandContext -> {
@@ -193,15 +193,15 @@ public class ScanCommand {
     private static int addToWhitelist(ClientPlayerEntity player, String filename, Block block){
         ArrayList<Block> blocks = loadWhitelist(player, filename);
         if(blocks == null){
-            player.sendMessage(Text.literal("blocks is null!"));
+            player.sendMessage(Text.literal("blocks is null!"),false);
             return 0;
         }
         if(!blocks.contains(block)){
             blocks.add(block);
             saveWhitelist(player, blocks, filename);
-            player.sendMessage(Text.literal("Added"));
+            player.sendMessage(Text.literal("Added"),false);
         }else{
-            player.sendMessage(Text.literal("Already in list"));
+            player.sendMessage(Text.literal("Already in list"),false);
         }
 
 
@@ -211,7 +211,7 @@ public class ScanCommand {
         Path toFile = Path.of(FileSuggestionProvider.pathToWhitelists, filename + ".txt");
         File file = toFile.toFile();
         file.delete();
-        player.sendMessage(Text.literal("Deleted"));
+        player.sendMessage(Text.literal("Deleted"), false);
         return 1;
     }
     private static int createWhitelist(ClientPlayerEntity player, String filename){
@@ -222,32 +222,32 @@ public class ScanCommand {
             file.createNewFile();
 
         }catch (Exception ex){
-            player.sendMessage(Text.literal("Exception during write file: " + ex.getMessage() + file));
+            player.sendMessage(Text.literal("Exception during write file: " + ex.getMessage() + file),false);
             return 0;
         }
-        player.sendMessage(Text.literal("Created"));
+        player.sendMessage(Text.literal("Created"),false);
         return 1;
     }
     private static int removeFromWhitelist(ClientPlayerEntity player, String filename, Block block){
         ArrayList<Block> blocks = loadWhitelist(player, filename);
         if(blocks == null){
-            player.sendMessage(Text.literal("blocks is null!"));
+            player.sendMessage(Text.literal("blocks is null!"),false);
             return 0;
         }
         blocks.remove(block);
         saveWhitelist(player, blocks, filename);
-        player.sendMessage(Text.literal("Removed"));
+        player.sendMessage(Text.literal("Removed"),false);
         return 1;
     }
 
     private static int printWhitelist(ClientPlayerEntity player, String filename){
         ArrayList<Block> blocks = loadWhitelist(player, filename);
         if(blocks == null){
-            player.sendMessage(Text.literal("blocks is null!"));
+            player.sendMessage(Text.literal("blocks is null!"),false);
             return 0;
         }
         for (Block block : blocks) {
-            player.sendMessage(block.getName());
+            player.sendMessage(block.getName(), false);
         }
         return 1;
     }
@@ -261,7 +261,7 @@ public class ScanCommand {
             }
             writer.close();
         }catch (Exception ex){
-            player.sendMessage(Text.literal("Exception during write file: " + ex.getMessage()));
+            player.sendMessage(Text.literal("Exception during write file: " + ex.getMessage()),false);
 
         }
     }
@@ -276,18 +276,19 @@ public class ScanCommand {
             Scanner scan = new Scanner(reader);
             while(scan.hasNextLine()){
                 String fileString = scan.nextLine();
-                Identifier blockId = new Identifier(fileString);
+                //WARNING TEST NEEDED
+                Identifier blockId = Identifier.of(fileString);
                 Block block = Registries.BLOCK.get(blockId);
                 if(Registries.BLOCK.getId(block).toString().equals(fileString)){
                     whitelist.add(block);
                 }else {
-                    player.sendMessage(Text.literal("Unknown block:" + fileString));
+                    player.sendMessage(Text.literal("Unknown block:" + fileString),false);
                 }
             }
             reader.close();
             return whitelist;
         }catch (Exception ex){
-            MinecraftClient.getInstance().player.sendMessage(Text.literal("Exception during read file: " + ex.getMessage()));
+            MinecraftClient.getInstance().player.sendMessage(Text.literal("Exception during read file: " + ex.getMessage()),false);
         }
         return null;
     }
