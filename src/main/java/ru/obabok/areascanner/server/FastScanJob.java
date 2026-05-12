@@ -246,7 +246,7 @@ public class FastScanJob {
 
     private void updateChunkProcess(){
         for (int i = 0; i < subscribers.size(); i++) {
-            if(subscribers.get(i).getServerWorld() != world){
+            if(subscribers.get(i).getServerWorld().getRegistryKey().getValue() != world.getRegistryKey().getValue()){
                 ServerPlayNetworking.send(subscribers.get(i), new ScanFullCompletedPayload(jobId, "Wrong world", false));
                 unsubscribe(subscribers.get(i));
                 return;

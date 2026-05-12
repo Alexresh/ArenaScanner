@@ -86,8 +86,8 @@ public class ServerScanManager {
     public String subscribe(ServerPlayerEntity player, long jobId){
         for (int i = 0; i < jobs.size(); i++) {
             FastScanJob job = jobs.get(i);
-            if(job.getWorld() != player.getServerWorld()){
-                return "wrong world";
+            if(job.getWorld().getRegistryKey().getValue() != player.getServerWorld().getRegistryKey().getValue()){
+                return "[wrong world] jobWorld: " + job.getWorld().getRegistryKey().getValue() + " ServerWorld: " + player.getServerWorld().getRegistryKey().getValue();
             }
             if (job.getJobId() == jobId) {
                 job.subscribe(player);
