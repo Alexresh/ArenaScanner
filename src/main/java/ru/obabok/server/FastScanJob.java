@@ -154,7 +154,7 @@ public class FastScanJob {
                 if (nbt.isPresent()) {
                     readyChunks.enqueue(pos);
                 } else {
-                    stop("Chunk " + new ChunkPos(pos) + " missing", true);
+                    stop("Chunk " + ChunkPos.fromSectionNode(pos) + " missing", true);
                     return;
                 }
             } catch (Exception e) {
@@ -179,7 +179,7 @@ public class FastScanJob {
                 && scheduled < ServerScanConfig.getMaxNbtReadsPerTick()
                 && pendingNbt.size() < ServerScanConfig.getMaxPendingNbt()) {
                 long pos = chunkCursor.nextLong();
-                CompletableFuture<Optional<CompoundTag>> future = storage.loadAsync(new ChunkPos(pos));
+                CompletableFuture<Optional<CompoundTag>> future = storage.loadAsync(ChunkPos.unpack(pos));
                 pendingNbt.put(pos, future);
                 activeNbtReads.add(pos); // Запоминаем, что этот чанк в работе
                 scheduled++;
@@ -193,11 +193,11 @@ public class FastScanJob {
                 break;
             }
             long pos = readyChunks.dequeueLong();
-            ChunkPos chunkPos = new ChunkPos(pos);
-            ChunkAccess chunk = world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.EMPTY, true);
+            ChunkPos chunkPos = ChunkPos.unpack(pos);
+            ChunkAccess chunk = world.getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.EMPTY, true);
             if (!(chunk instanceof ProtoChunk worldChunk)) {
-                owner.sendSystemMessage(Component.literal(References.MOD_ID + " chunk " + new ChunkPos(pos) + " is not world chunk! Cancelling"));
-                stop("Chunk " + new ChunkPos(pos) + " is not world chunk! Cancelling", true);
+                owner.sendSystemMessage(Component.literal(References.MOD_ID + " chunk " + ChunkPos.unpack(pos) + " is not world chunk! Cancelling"));
+                stop("Chunk " + ChunkPos.unpack(pos) + " is not world chunk! Cancelling", true);
                 return;
             }
             scanChunk(worldChunk, chunkPos, deltaBuffer);
@@ -213,7 +213,7 @@ public class FastScanJob {
             }
 
             processedChunks++;
-            scannedChunks.add(ChunkPos.asLong(chunkPos.x, chunkPos.z));
+            scannedChunks.add(ChunkPos.pack(chunkPos.x(), chunkPos.z()));
         }
     }
 
@@ -335,7 +335,7 @@ public class FastScanJob {
         if (fullComplete) return;
         if (eventWorld != world) return;
         if (!isInRange(pos)) return;
-        if (!scanCompleted && !scannedChunks.contains(ChunkPos.asLong(pos.getX() >> 4, pos.getZ() >> 4))) return;
+        if (!scanCompleted && !scannedChunks.contains(ChunkPos.pack(pos.getX() >> 4, pos.getZ() >> 4))) return;
 
         boolean oldMatch = BlockMatcher.matches(whitelist, oldState, world, pos);
         boolean newMatch = BlockMatcher.matches(whitelist, newState, world, pos);
@@ -396,7 +396,7 @@ public class FastScanJob {
             int cz = current / width;
             int cx = current % width;
             current++;
-            return ChunkPos.asLong(startX + cx, startZ + cz);
+            return ChunkPos.pack(startX + cx, startZ + cz);
         }
     }
 

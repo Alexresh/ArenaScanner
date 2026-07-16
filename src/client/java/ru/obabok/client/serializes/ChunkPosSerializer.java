@@ -9,8 +9,8 @@ public class ChunkPosSerializer implements JsonSerializer<ChunkPos>, JsonDeseria
     @Override
     public JsonElement serialize(ChunkPos src, Type typeOfSrc, JsonSerializationContext context) {
         JsonObject obj = new JsonObject();
-        obj.addProperty("x", src.x);
-        obj.addProperty("z", src.z);
+        obj.addProperty("x", src.x());
+        obj.addProperty("z", src.z());
         return obj;
     }
 

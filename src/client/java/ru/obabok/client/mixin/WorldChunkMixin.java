@@ -27,7 +27,7 @@ public class WorldChunkMixin {
             if (oldState != null && oldState != state) {
                 Level world = ((LevelChunk) (Object) this).getLevel();
                 if (world instanceof ClientLevel) {
-                    ChunkPos chunkPos = new ChunkPos(pos);
+                    ChunkPos chunkPos = ChunkPos.containing(pos);
                     if(Scan.isProcessing() && !ChunkScheduler.getChunkQueue().contains(chunkPos))
                         ChunkScheduler.addChunkToProcess(chunkPos);
                 }

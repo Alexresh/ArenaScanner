@@ -12,23 +12,23 @@ public class NetworkPackets {
             return;
         }
         registered = true;
-        PayloadTypeRegistry.playS2C().register(ServerVersionPayload.ID, ServerVersionPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ScanChunkSummaryPayload.ID, ScanChunkSummaryPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ScanAcceptedPayload.ID, ScanAcceptedPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ScanRejectedPayload.ID, ScanRejectedPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ScanCompletePayload.ID, ScanCompletePayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ScanDeltaPayload.ID, ScanDeltaPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ScanListResponsePayload.ID, ScanListResponsePayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(ScanFullCompletedPayload.ID, ScanFullCompletedPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(DebugInfoPayload.ID, DebugInfoPayload.CODEC);
-        PayloadTypeRegistry.playS2C().register(MaterialListResponsePayload.ID, MaterialListResponsePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ServerVersionPayload.ID, ServerVersionPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ScanChunkSummaryPayload.ID, ScanChunkSummaryPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ScanAcceptedPayload.ID, ScanAcceptedPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ScanRejectedPayload.ID, ScanRejectedPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ScanCompletePayload.ID, ScanCompletePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ScanDeltaPayload.ID, ScanDeltaPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ScanListResponsePayload.ID, ScanListResponsePayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(ScanFullCompletedPayload.ID, ScanFullCompletedPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(DebugInfoPayload.ID, DebugInfoPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(MaterialListResponsePayload.ID, MaterialListResponsePayload.CODEC);
 
-        PayloadTypeRegistry.playC2S().register(ScanStartPayload.ID, ScanStartPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(ScanStopPayload.ID, ScanStopPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(ScanUnsubscribePayload.ID, ScanUnsubscribePayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(ScanSubscribePayload.ID, ScanSubscribePayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(ScanListRequestPayload.ID, ScanListRequestPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(MaterialListRequestPayload.ID, MaterialListRequestPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ScanStartPayload.ID, ScanStartPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ScanStopPayload.ID, ScanStopPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ScanUnsubscribePayload.ID, ScanUnsubscribePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ScanSubscribePayload.ID, ScanSubscribePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ScanListRequestPayload.ID, ScanListRequestPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(MaterialListRequestPayload.ID, MaterialListRequestPayload.CODEC);
 
     }
 

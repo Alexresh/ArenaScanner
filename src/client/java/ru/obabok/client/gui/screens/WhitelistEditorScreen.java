@@ -1,7 +1,6 @@
 package ru.obabok.client.gui.screens;
 
-
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
@@ -108,7 +107,7 @@ public class WhitelistEditorScreen extends ScreenPlus {
             i++;
             addRenderableWidget(Button.builder(Component.literal("❌"), btn -> {
                 WhitelistManager.removeFromWhitelist(filename, item);
-                minecraft.setScreen(new WhitelistEditorScreen(parent, filename, currentPage));
+                minecraft.setScreenAndShow(new WhitelistEditorScreen(parent, filename, currentPage));
             }).bounds(280, y, 20, 20).build());
             StringWidget widget = new StringWidget(310, y, 120, 20, Component.literal("Condition " + i + "     OR"), font);
 
@@ -147,7 +146,7 @@ public class WhitelistEditorScreen extends ScreenPlus {
             if(presets.getSelectedEntry() != null){
                 current_whitelist.addAll(presets.getSelectedEntry().whitelist);
                 WhitelistManager.saveData(new Whitelist(current_whitelist), filename);
-                minecraft.setScreen(new WhitelistEditorScreen(parent, filename, 0));
+                minecraft.setScreenAndShow(new WhitelistEditorScreen(parent, filename, 0));
             }
         }).bounds(width - 110, 115, 80, 20).build());
 
@@ -155,7 +154,7 @@ public class WhitelistEditorScreen extends ScreenPlus {
         int buttonY = height - 40;
         if (currentPage > 0) {
             addRenderableWidget(Button.builder(Component.literal("< Prev"), btn ->
-                    minecraft.setScreen(new WhitelistEditorScreen(parent, filename, currentPage - 1))
+                    minecraft.setScreenAndShow(new WhitelistEditorScreen(parent, filename, currentPage - 1))
             ).bounds(width / 2 - 120, buttonY, 80, 20).build());
         }
 
@@ -166,18 +165,18 @@ public class WhitelistEditorScreen extends ScreenPlus {
 
         if (to < current_whitelist.size()) {
             addRenderableWidget(Button.builder(Component.literal("Next >"), btn ->
-                    minecraft.setScreen(new WhitelistEditorScreen(parent, filename, currentPage + 1))
+                    minecraft.setScreenAndShow(new WhitelistEditorScreen(parent, filename, currentPage + 1))
             ).bounds(width / 2 + 40, buttonY, 80, 20).build());
         }
 
-        addRenderableWidget(Button.builder(Component.literal("Back"), btn -> minecraft.setScreen(parent))
+        addRenderableWidget(Button.builder(Component.literal("Back"), btn -> minecraft.setScreenAndShow(parent))
                 .bounds(30, height - 30, 80, 20).build());
 
         addToWhitelistBtn = Button.builder(Component.literal("Add to whitelist"), btn -> {
                     if(validateCreatedWhitelistItem()){
                         current_whitelist.add(createdWhitelistItem);
                         WhitelistManager.saveData(new Whitelist(current_whitelist), filename);
-                        minecraft.setScreen(new WhitelistEditorScreen(parent, filename, 0));
+                        minecraft.setScreenAndShow(new WhitelistEditorScreen(parent, filename, 0));
                     }
                 }).bounds(30, 260, 90, 20).build();
         addRenderableWidget(addToWhitelistBtn);
@@ -190,7 +189,7 @@ public class WhitelistEditorScreen extends ScreenPlus {
 
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         try {
             if(!blockInput.getValue().isEmpty() && BuiltInRegistries.BLOCK.containsKey(Identifier.parse(blockInput.getValue()))){
                 createdWhitelistItem.block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockInput.getValue()));
@@ -212,11 +211,11 @@ public class WhitelistEditorScreen extends ScreenPlus {
         }else createdWhitelistItem.blastResistance = null;
 
         //borders
-        context.renderOutline(20,20, 245, 265, CommonColors.LIGHT_GRAY);
-        context.renderOutline(275,20, 130, height - 80, CommonColors.LIGHT_GRAY);
+        context.outline(20,20, 245, 265, CommonColors.LIGHT_GRAY);
+        context.outline(275,20, 130, height - 80, CommonColors.LIGHT_GRAY);
 
         addToWhitelistBtn.active = validateCreatedWhitelistItem();
-        super.render(context, mouseX, mouseY, delta);
-        context.drawString(font, Component.literal(createdWhitelistItem.toString()), 30,240, CommonColors.WHITE, true);
+        super.extractRenderState(context, mouseX, mouseY, delta);
+        context.text(font, Component.literal(createdWhitelistItem.toString()), 30,240, CommonColors.WHITE, true);
     }
 }

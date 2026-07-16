@@ -48,9 +48,9 @@ public class ClientNetwork {
             if(Config.Generic.JOIN_NOTIFICATION.getBooleanValue() && Minecraft.getInstance().player != null){
                 if(FabricLoader.getInstance().getModContainer(References.MOD_ID).isPresent()){
                     if(!FabricLoader.getInstance().getModContainer(References.MOD_ID).get().getMetadata().getVersion().getFriendlyString().equals(payload.version())){
-                        Minecraft.getInstance().player.displayClientMessage(Component.literal("[" + References.MOD_ID + "] server version is: " + payload.version() + " but you in " + FabricLoader.getInstance().getModContainer(References.MOD_ID).get().getMetadata().getVersion().getFriendlyString() + ". Operation is not guaranteed"), false);
+                        Minecraft.getInstance().player.sendSystemMessage(Component.literal("[" + References.MOD_ID + "] server version is: " + payload.version() + " but you in " + FabricLoader.getInstance().getModContainer(References.MOD_ID).get().getMetadata().getVersion().getFriendlyString() + ". Operation is not guaranteed"));
                     }else {
-                        Minecraft.getInstance().player.displayClientMessage(Component.literal("[" + References.MOD_ID + "] Server-side scanning is supported"), false);
+                        Minecraft.getInstance().player.sendSystemMessage(Component.literal("[" + References.MOD_ID + "] Server-side scanning is supported"));
                     }
                 }
             }
@@ -75,7 +75,7 @@ public class ClientNetwork {
         ClientPlayNetworking.registerGlobalReceiver(ScanRejectedPayload.ID, (payload, context) -> {
             pendingStarts.remove(payload.jobId());
             if (Minecraft.getInstance().player != null) {
-                Minecraft.getInstance().player.displayClientMessage(Component.literal("Scan rejected: " + payload.reason()), false);
+                Minecraft.getInstance().player.sendSystemMessage(Component.literal("Scan rejected: " + payload.reason()));
             }
         });
 
@@ -95,7 +95,7 @@ public class ClientNetwork {
                 Scan.stopScan();
             }
             if (Minecraft.getInstance().player != null) {
-                Minecraft.getInstance().player.displayClientMessage(Component.literal("Scan finished, cause: " + payload.cause()),false);
+                Minecraft.getInstance().player.sendSystemMessage(Component.literal("Scan finished, cause: " + payload.cause()));
                 Minecraft.getInstance().player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1, 1);
             }
         });

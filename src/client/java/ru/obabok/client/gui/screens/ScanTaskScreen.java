@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.StringWidget;
@@ -41,7 +41,7 @@ public class ScanTaskScreen extends ScreenPlus {
     protected ScanTaskScreen(Screen parent) {
         super(Component.literal("Scan task screen"));
         this.parent = parent;
-        if(Minecraft.getInstance().player == null) Minecraft.getInstance().setScreen(parent);
+        if(Minecraft.getInstance().player == null) Minecraft.getInstance().setScreenAndShow(parent);
         this.initialBox = Scan.getRange() == null ? new BlockBox(Minecraft.getInstance().player.getOnPos(), Minecraft.getInstance().player.getOnPos()) : Scan.getRange();
         if(Scan.getRange() != initialBox){
             Scan.setRange(initialBox);
@@ -144,7 +144,7 @@ public class ScanTaskScreen extends ScreenPlus {
         addRenderableWidget(shareNameField);
 
         //back button
-        addRenderableWidget(Button.builder(Component.literal("Back"), btn -> minecraft.setScreen(parent)).bounds( 30, height - 30, 50, 20).build());
+        addRenderableWidget(Button.builder(Component.literal("Back"), btn -> minecraft.setScreenAndShow(parent)).bounds( 30, height - 30, 50, 20).build());
 
         //start button
         startButton = Button.builder(Component.literal("Start scan"), btn -> {
@@ -174,7 +174,7 @@ public class ScanTaskScreen extends ScreenPlus {
                 ClientNetwork.stopScan();
             }
             Scan.stopScan();
-            minecraft.setScreen(new ScanTaskScreen(parent, box));
+            minecraft.setScreenAndShow(new ScanTaskScreen(parent, box));
         }).bounds(180, height - 30, 80, 20).build();
         stopScanBtn.active = Scan.isProcessing() || Scan.isRemoteProcessing();
         addRenderableWidget(stopScanBtn);
@@ -188,7 +188,7 @@ public class ScanTaskScreen extends ScreenPlus {
 
         Button loadStateBtn = Button.builder(Component.literal("Load state"), btn -> {
             if(minecraft.player != null){
-                minecraft.player.displayClientMessage(Component.literal(Scan.loadState() ? "State loaded" : "State didn't load"), true);
+                minecraft.player.sendOverlayMessage(Component.literal(Scan.loadState() ? "State loaded" : "State didn't load"));
             }
             this.onClose();
         }).bounds(370, height - 30, 90, 20).build();
@@ -197,14 +197,14 @@ public class ScanTaskScreen extends ScreenPlus {
     }
 
     @Override
-    public void renderBackground(GuiGraphics guiGraphics, int i, int j, float f) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 
     }
 
     @Override
     public boolean keyPressed(KeyEvent keyEvent) {
         if(keyEvent.key() == InputConstants.KEY_ESCAPE){
-            minecraft.setScreen(parent);
+            minecraft.setScreenAndShow(parent);
             return true;
         }
         return super.keyPressed(keyEvent);
@@ -215,23 +215,24 @@ public class ScanTaskScreen extends ScreenPlus {
         return false;
     }
 
+
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         int y = height - 110;
         int x = 40;
         if(Scan.isProcessing()){
-            context.drawString(font, Component.literal("Scan in process..."), x, y, CommonColors.WHITE);
-            context.drawString(font, Component.literal("All chunks: " + Scan.getAllChunksCounter()), x, y += 15, CommonColors.WHITE);
-            context.drawString(font, Component.literal("Unchecked chunks: " + Scan.unloadedChunks.size()), x, y += 15, CommonColors.WHITE);
-            context.drawString(font, Component.literal("Percent left: " + String.format("%.2f", (double) Scan.unloadedChunks.size() / Scan.getAllChunksCounter() * 100)), x, y+=15, CommonColors.WHITE);
-            context.drawString(font, Component.literal("Selected blocks: " +  Scan.selectedBlocks.size()), x, y+=15, CommonColors.WHITE);
+            context.text(font, Component.literal("Scan in process..."), x, y, CommonColors.WHITE);
+            context.text(font, Component.literal("All chunks: " + Scan.getAllChunksCounter()), x, y += 15, CommonColors.WHITE);
+            context.text(font, Component.literal("Unchecked chunks: " + Scan.unloadedChunks.size()), x, y += 15, CommonColors.WHITE);
+            context.text(font, Component.literal("Percent left: " + String.format("%.2f", (double) Scan.unloadedChunks.size() / Scan.getAllChunksCounter() * 100)), x, y+=15, CommonColors.WHITE);
+            context.text(font, Component.literal("Selected blocks: " +  Scan.selectedBlocks.size()), x, y+=15, CommonColors.WHITE);
         }else{
-            context.drawString(font, Component.literal("Scan is stopped"), x, y, CommonColors.WHITE);
+            context.text(font, Component.literal("Scan is stopped"), x, y, CommonColors.WHITE);
         }
 
         startButton.active = whitelistSelectorList.getSelectedEntry() != null && !whitelistSelectorList.getSelectedEntry().isEmpty() && Scan.getRange() != null && !Scan.isProcessing();
-        context.renderOutline(15,15, 110, 150, CommonColors.LIGHT_GRAY);
-        context.renderOutline(135,15, 110, 150, CommonColors.LIGHT_GRAY);
+        context.outline(15,15, 110, 150, CommonColors.LIGHT_GRAY);
+        context.outline(135,15, 110, 150, CommonColors.LIGHT_GRAY);
         for (CoordButton entry : coordButtons) {
             if (entry.button.isMouseOver(mouseX, mouseY)) {
                 List<Component> tooltip = List.of(
@@ -244,14 +245,14 @@ public class ScanTaskScreen extends ScreenPlus {
                 break;
             }
         }
-        super.render(context, mouseX, mouseY, delta);
+        super.extractRenderState(context, mouseX, mouseY, delta);
     }
+
 
     @Override
-    protected void renderBlurredBackground(GuiGraphics guiGraphics) {
+    protected void extractBlurredBackground(GuiGraphicsExtractor graphics) {
 
     }
-
 
     private void moveToPlayer(boolean minCorner){
         if(minecraft.player == null) return;

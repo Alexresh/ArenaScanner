@@ -4,7 +4,7 @@ import fi.dy.masa.malilib.config.HudAlignment;
 import fi.dy.masa.malilib.render.RenderUtils;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.CommonColors;
 import net.minecraft.world.level.ChunkPos;
@@ -32,8 +32,8 @@ public class HudRender {
     private static final char[] SPINNER_FRAMES = new char[]{'\\', '|', '/', '-'};
 
 
-    public static void render(GuiGraphics guiGraphics, DeltaTracker deltaTracker) {
-        if (Config.Generic.MAIN_RENDER.getBooleanValue() && Config.Hud.HUD_ENABLE.getBooleanValue() && !Minecraft.getInstance().options.hideGui) {
+    public static void render(GuiGraphicsExtractor guiGraphicsExtractor, DeltaTracker deltaTracker) {
+        if (Config.Generic.MAIN_RENDER.getBooleanValue() && Config.Hud.HUD_ENABLE.getBooleanValue() && !Minecraft.getInstance().gui.hud.isHidden()) {
             lines.clear();
 
             if(!ChunkScheduler.getChunkQueue().isEmpty()){
@@ -66,7 +66,7 @@ public class HudRender {
 
             }
 
-            RenderUtils.renderText(fromGuiGraphics(guiGraphics), Config.Hud.HUD_POS_X.getIntegerValue(), Config.Hud.HUD_POS_Y.getIntegerValue(), Config.Hud.HUD_SCALE.getFloatValue(), CommonColors.WHITE, CommonColors.BLACK, (HudAlignment)Config.Hud.HUD_ALIGNMENT.getOptionListValue(), false, false, lines);
+            RenderUtils.renderText(fromGuiGraphics(guiGraphicsExtractor), Config.Hud.HUD_POS_X.getIntegerValue(), Config.Hud.HUD_POS_Y.getIntegerValue(), Config.Hud.HUD_SCALE.getFloatValue(), CommonColors.WHITE, CommonColors.BLACK, (HudAlignment)Config.Hud.HUD_ALIGNMENT.getOptionListValue(), false, false, lines);
         }
     }
 
@@ -160,6 +160,4 @@ public class HudRender {
         }
         return sec + "s";
     }
-
-
 }

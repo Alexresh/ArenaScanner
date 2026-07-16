@@ -1,17 +1,21 @@
 package ru.obabok.client.util;
 
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
+import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import fi.dy.masa.malilib.util.data.Color4f;
 
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.DynamicUniforms;
 import net.minecraft.client.renderer.MappableRingBuffer;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
@@ -50,20 +54,20 @@ public class RenderUtil {
     private static final Matrix4f TEXTURE_MATRIX = new Matrix4f();
     //new
     private static final RenderPipeline BLOCKS_RENDER = RenderPipelines.register(RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath(References.MOD_ID, "pipeline/box"))
-            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
+            .withLocation(Identifier.fromNamespaceAndPath(References.MOD_ID, "pipeline/box")).withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, true))
             .build()
     );
+    private static final ByteBufferBuilder sortAllocator = new ByteBufferBuilder(1024 * 1024);
 
 
-    public static void renderAll(WorldRenderContext context) {
+    public static void renderAll(LevelRenderContext context) {
         if(!Config.Generic.MAIN_RENDER.getBooleanValue()) return;
-        if(Minecraft.getInstance().options.hideGui) return;
+        if(Minecraft.getInstance().gui.hud.isHidden()) return;
         BlockBox scanRange = Scan.getRange();
         if(scanRange != null){
             renderAreaOutline(scanRange.min(), scanRange.max(), 2, Color4f.fromColor(CommonColors.RED), Color4f.fromColor(CommonColors.GREEN),Color4f.fromColor(CommonColors.BLUE));
             if(Config.Generic.AREA_EDGE_RENDER.getBooleanValue()){
-                renderAreaSides(scanRange.min(), scanRange.max(), Config.Generic.AREA_EDGE_COLOR.getColor(), context.matrices().last().pose());
+                renderAreaSides(scanRange.min(), scanRange.max(), Config.Generic.AREA_EDGE_COLOR.getColor(), false);
             }
         }
 
@@ -79,13 +83,13 @@ public class RenderUtil {
 
         if(!renderChunksList.isEmpty() || !renderBlocksList.isEmpty()){
             try {
-                context.matrices().pushPose();
+                context.poseStack().pushPose();
 
                 blockBuffer = prepareRenderChunks(context, blockBuffer);
 
                 blockBuffer = prepareRenderBlocksOptimized(context, blockBuffer);
-                context.matrices().popPose();
-                renderAll(Minecraft.getInstance(), BLOCKS_RENDER, context.matrices());
+                context.poseStack().popPose();
+                renderAll(Minecraft.getInstance(), BLOCKS_RENDER, context.poseStack());
             }catch (Exception ignored){
 
             }
@@ -94,15 +98,15 @@ public class RenderUtil {
     }
 
 
-    private static BufferBuilder prepareRenderChunks(WorldRenderContext context, BufferBuilder buffer){
+    private static BufferBuilder prepareRenderChunks(LevelRenderContext context, BufferBuilder buffer){
         if(renderChunksList.isEmpty()) return buffer;
-        PoseStack matrices = context.matrices();
-        Vec3 camera = context.worldState().cameraRenderState.pos;
+        PoseStack matrices = context.poseStack();
+        Vec3 camera = context.levelState().cameraRenderState.pos;
 
         //matrices.pushPose();
 
         if (buffer == null) {
-            buffer = new BufferBuilder(allocator, BLOCKS_RENDER.getVertexFormatMode(), BLOCKS_RENDER.getVertexFormat());
+            buffer = new BufferBuilder(allocator, BLOCKS_RENDER.getPrimitiveTopology(), BLOCKS_RENDER.getVertexFormatBinding(0));
         }
 
         Color4f chunkColor = Config.Generic.UNLOADED_CHUNK_COLOR.getColor();
@@ -113,8 +117,8 @@ public class RenderUtil {
 
         for (int i = 0; i < renderChunksList.size(); i++) {
             ChunkPos pos = renderChunksList.get(i);
-            double centerX = (pos.x << 4) + 8.5;
-            double centerZ = (pos.z << 4) + 8.5;
+            double centerX = (pos.x() << 4) + 8.5;
+            double centerZ = (pos.z() << 4) + 8.5;
 
             double relx = centerX - camera.x;
             double relz = centerZ - camera.z;
@@ -124,18 +128,18 @@ public class RenderUtil {
                     continue;
                 }
             }
-            filledPlane(matrices.last().pose(), buffer, pos.x << 4, pos.z << 4, (pos.x << 4) + 16, (pos.z << 4) + 16, camera.y + offset, camera, chunkColor);
+            filledPlane(matrices.last().pose(), buffer, pos.x() << 4, pos.z() << 4, (pos.x() << 4) + 16, (pos.z() << 4) + 16, camera.y + offset, camera, chunkColor);
         }
         //matrices.popPose();
         return buffer;
     }
 
-    private static BufferBuilder prepareRenderBlocksOptimized(WorldRenderContext context, BufferBuilder buffer) {
+    private static BufferBuilder prepareRenderBlocksOptimized(LevelRenderContext context, BufferBuilder buffer) {
         if(renderBlocksList.isEmpty()) return buffer;
 
-        PoseStack matrices = context.matrices();
-        Vec3 camera = context.worldState().cameraRenderState.pos;
-        Quaternionf orientation = context.worldState().cameraRenderState.orientation;
+        PoseStack matrices = context.poseStack();
+        Vec3 camera = context.levelState().cameraRenderState.pos;
+        Quaternionf orientation = context.levelState().cameraRenderState.orientation;
 
         // Извлекаем направление взгляда из кватерниона
         Vec3 lookDirection = getLookDirection(orientation);
@@ -143,7 +147,7 @@ public class RenderUtil {
         matrices.pushPose();
 
         if (buffer == null) {
-            buffer = new BufferBuilder(allocator, BLOCKS_RENDER.getVertexFormatMode(), BLOCKS_RENDER.getVertexFormat());
+            buffer = new BufferBuilder(allocator, BLOCKS_RENDER.getPrimitiveTopology(), BLOCKS_RENDER.getVertexFormatBinding(0));
         }
 
         int maxDistance = Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue();
@@ -324,93 +328,115 @@ public class RenderUtil {
 
 
     public static void renderAll(Minecraft client, RenderPipeline pipeline, PoseStack matrices) {
-        if(blockBuffer == null) return;
+        if (blockBuffer == null) return;
+
         MeshData builtBuffer;
         try {
             builtBuffer = blockBuffer.buildOrThrow();
-        }catch (IllegalStateException e){
+        } catch (IllegalStateException e) {
             blockBuffer = null;
             return;
         }
+
+        // Если вершин нет, сразу очищаем и выходим
+        if (builtBuffer.drawState().vertexCount() == 0) {
+            builtBuffer.close();
+            blockBuffer = null;
+            return;
+        }
+
+        // 1. НОВЫЙ СПОСОБ ЗАГРУЗКИ В GPU (вместо MappableRingBuffer и memCopy)
+        // Мы создаем GpuBuffer напрямую из ByteBuffer, который лежит внутри MeshData
+        GpuBuffer vertexBuffer = RenderSystem.getDevice().createBuffer(
+                () -> "mod_vertex_buffer",
+                GpuBuffer.USAGE_VERTEX,
+                builtBuffer.vertexBuffer()
+        );
+
+        // 2. Рендерим
+        draw(client, pipeline, builtBuffer, vertexBuffer, matrices);
+
+        // 3. Очистка
+        builtBuffer.close();
+        blockBuffer = null; // Сбрасываем для следующего кадра
+    }
+
+    private static void draw(Minecraft client, RenderPipeline pipeline, MeshData builtBuffer, GpuBuffer vertexBuffer, PoseStack matrices) {
         MeshData.DrawState drawParameters = builtBuffer.drawState();
-        VertexFormat format = drawParameters.format();
 
-        blockVertexBuffer = upload(drawParameters, format, builtBuffer, blockVertexBuffer);
-        GpuBuffer vertices = blockVertexBuffer.currentBuffer();
-        draw(client, pipeline, builtBuffer, drawParameters, vertices, format, matrices);
 
-        blockVertexBuffer.rotate();
-        blockBuffer = null;
-    }
-
-    private static MappableRingBuffer upload(MeshData.DrawState drawParameters, VertexFormat format, MeshData builtBuffer, MappableRingBuffer vertexBuffer) {
-        int vertexBufferSize = drawParameters.vertexCount() * format.getVertexSize();
-        if (vertexBuffer == null || vertexBuffer.size() < vertexBufferSize) {
-            if (vertexBuffer != null) {
-                vertexBuffer.close();
-            }
-
-            vertexBuffer = new MappableRingBuffer(() -> References.MOD_ID + " pipeline", GpuBuffer.USAGE_VERTEX | GpuBuffer.USAGE_MAP_WRITE, vertexBufferSize);
-        }
-
-        CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
-
-        try (GpuBuffer.MappedView mappedView = commandEncoder.mapBuffer(vertexBuffer.currentBuffer(), false, true)) {
-            ByteBuffer targetBuffer = mappedView.data();
-            ByteBuffer sourceBuffer = builtBuffer.vertexBuffer();
-            long bytesToCopy = sourceBuffer.remaining();
-
-            if (bytesToCopy > 0) {
-                MemoryUtil.memCopy(
-                        MemoryUtil.memAddress(sourceBuffer),
-                        MemoryUtil.memAddress(targetBuffer),
-                        bytesToCopy
-                );
-            }
-        }
-
-        return vertexBuffer;
-    }
-
-    private static void draw(Minecraft client, RenderPipeline pipeline, MeshData builtBuffer, MeshData.DrawState drawParameters, GpuBuffer vertices, VertexFormat format, PoseStack matrices) {
+        // 2. Обработка индексов
         GpuBuffer indices;
-        VertexFormat.IndexType indexType;
+        IndexType indexType;
 
-        if (pipeline.getVertexFormatMode() == VertexFormat.Mode.QUADS) {
-            builtBuffer.sortQuads(allocator, RenderSystem.getProjectionType().vertexSorting());
-            indices = pipeline.getVertexFormat().uploadImmediateIndexBuffer(builtBuffer.indexBuffer());
-            indexType = builtBuffer.drawState().indexType();
+        // Проверяем, нужно ли сортировать квады.
+        // В новом API SortState возвращает null, если сортировка не нужна или невозможна.
+        MeshData.SortState sortState = builtBuffer.sortQuads(sortAllocator, RenderSystem.getProjectionType().vertexSorting());
+
+        if (sortState != null) {
+            // Если сортировка прошла успешно, используем индексный буфер из меша
+            indices = RenderSystem.getDevice().createBuffer(
+                    () -> "mod_index_buffer",
+                    GpuBuffer.USAGE_INDEX,
+                    builtBuffer.indexBuffer()
+            );
+            indexType = drawParameters.indexType();
         } else {
-            RenderSystem.AutoStorageIndexBuffer shapeIndexBuffer = RenderSystem.getSequentialBuffer(pipeline.getVertexFormatMode());
+            // Если это не квады (или сортировка не удалась), используем системный последовательный буфер
+            // RenderSystem.getSequentialBuffer обычно требует PrimitiveTopology или похожий энум.
+            // Если у тебя нет доступа к Mode, попробуй получить топологию из пайплайна, если есть такой метод.
+            // Если нет, используй TRIANGLES по умолчанию для безопасности.
+            RenderSystem.AutoStorageIndexBuffer shapeIndexBuffer = RenderSystem.getSequentialBuffer(PrimitiveTopology.TRIANGLES);
             indices = shapeIndexBuffer.getBuffer(drawParameters.indexCount());
             indexType = shapeIndexBuffer.type();
         }
 
-        GpuBufferSlice dynamicTransforms = RenderSystem.getDynamicUniforms()
-                .writeTransform(RenderSystem.getModelViewMatrix(), COLOR_MODULATOR, MODEL_OFFSET, TEXTURE_MATRIX);
+        // 3. Подготовка трансформаций
+        Matrix4f modelView = matrices.last().pose();
+        GpuBufferSlice[] transforms = RenderSystem.getDynamicUniforms().writeTransforms(
+                new DynamicUniforms.Transform(
+                        new Matrix4f(modelView),
+                        new Vector4f(1.0F, 1.0F, 1.0F, 1.0F),
+                        new Vector3f(0.0F, 0.0F, 0.0F),
+                        new Matrix4f()
+                )
+        );
+
+        // 4. Рендер-пасс
         try (RenderPass renderPass = RenderSystem.getDevice()
                 .createCommandEncoder()
-                .createRenderPass(() -> References.MOD_ID + " example render pipeline rendering", client.getMainRenderTarget().getColorTextureView(), OptionalInt.empty(), client.getMainRenderTarget().getDepthTextureView(), OptionalDouble.empty())) {
-            renderPass.setPipeline(pipeline);
+                .createRenderPass(
+                        () -> "mod_render_pass",
+                        client.gameRenderer.mainRenderTarget().getColorTextureView(),
+                        Optional.empty(),
+                        client.gameRenderer.mainRenderTarget().getDepthTextureView(),
+                        OptionalDouble.empty()
+                )) {
 
             RenderSystem.bindDefaultUniforms(renderPass);
-            renderPass.setUniform("DynamicTransforms", dynamicTransforms);
+            renderPass.setPipeline(pipeline);
+            renderPass.setUniform("DynamicTransforms", transforms[0]);
 
-
-            renderPass.setVertexBuffer(0, vertices);
+            renderPass.setVertexBuffer(0, vertexBuffer.slice());
             renderPass.setIndexBuffer(indices, indexType);
 
-            renderPass.drawIndexed(0, 0, drawParameters.indexCount(), 1);
+            // Используем твою сигнатуру: drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance)
+            renderPass.drawIndexed(drawParameters.indexCount(), 1, 0, 0, 0);
         }
 
-        builtBuffer.close();
+        // 5. Очистка
+        vertexBuffer.close();
+        if (sortState != null) {
+            indices.close();
+        }
+
     }
 
     public static void lookRandomSelectedBlock(){
         if(client.player == null) return;
         Random random = new Random();
-        Vec3 pos = renderBlocksList.get(random.nextInt(renderBlocksList.size())).getCenter();
-        client.player.lookAt(EntityAnchorArgument.Anchor.EYES, pos);
+        BlockPos pos = renderBlocksList.get(random.nextInt(renderBlocksList.size()));
+        client.player.lookAt(EntityAnchorArgument.Anchor.EYES, new Vec3(pos.getX(), pos.getY(), pos.getZ()));
     }
     public static void clearRender(){
         renderBlocksList.clear();

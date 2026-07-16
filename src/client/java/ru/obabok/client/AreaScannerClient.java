@@ -4,7 +4,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -29,7 +29,7 @@ public class AreaScannerClient implements ClientModInitializer {
 			ClientPlayerBlockBreakEvents.AFTER.register((clientWorld, clientPlayerEntity, blockPos, blockState) ->{
 				if (Scan.isRemoteProcessing()) return;
 				if(Scan.isProcessing()){
-					ChunkScheduler.addChunkToProcess(new ChunkPos(blockPos));
+					ChunkScheduler.addChunkToProcess(ChunkPos.containing(blockPos));
 				}
 			});
 
@@ -37,7 +37,7 @@ public class AreaScannerClient implements ClientModInitializer {
 				if(!world.isClientSide()) return InteractionResult.PASS;
 				if (Scan.isRemoteProcessing()) return InteractionResult.PASS;
 				if(Scan.isProcessing()) {
-					ChunkScheduler.addChunkToProcess(new ChunkPos(blockPos));
+					ChunkScheduler.addChunkToProcess(ChunkPos.containing(blockPos));
 				}
 				return InteractionResult.PASS;
 			});
@@ -46,7 +46,7 @@ public class AreaScannerClient implements ClientModInitializer {
 				if(!world.isClientSide()) return InteractionResult.PASS;
 				if (Scan.isRemoteProcessing()) return InteractionResult.PASS;
 				if(Scan.isProcessing()) {
-					ChunkScheduler.addChunkToProcess(new ChunkPos(blockHitResult.getBlockPos()));
+					ChunkScheduler.addChunkToProcess(ChunkPos.containing(blockHitResult.getBlockPos()));
 				}
 				return InteractionResult.PASS;
 			});
@@ -65,7 +65,7 @@ public class AreaScannerClient implements ClientModInitializer {
 			});
 
 			HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(References.MOD_ID, "hud"), HudRender::render);
-			WorldRenderEvents.BEFORE_TRANSLUCENT.register(RenderUtil::renderAll);
+			LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(RenderUtil::renderAll);
 			ChunkScheduler.startProcessing();
 		}
 	}

@@ -2,7 +2,7 @@ package ru.obabok.client.models;
 
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
 import fi.dy.masa.malilib.render.GuiContext;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -19,8 +19,8 @@ public class ScreenPlus extends Screen {
 
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-        super.render(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(context, mouseX, mouseY, delta);
         this.drawWidgets(mouseX, mouseY, context);
         this.drawHoveredWidget(mouseX, mouseY, context);
     }
@@ -48,7 +48,7 @@ public class ScreenPlus extends Screen {
         return super.mouseReleased(mouseButtonEvent);
     }
 
-    protected void drawWidgets(int mouseX, int mouseY, GuiGraphics drawContext)
+    protected void drawWidgets(int mouseX, int mouseY, GuiGraphicsExtractor drawContext)
     {
         this.hoveredWidget = null;
 
@@ -68,7 +68,7 @@ public class ScreenPlus extends Screen {
 
     protected boolean shouldRenderHoverStuff()
     {
-        return minecraft.screen == this;
+        return minecraft.gui.screen() == this;
     }
 
 
@@ -95,7 +95,7 @@ public class ScreenPlus extends Screen {
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
-    protected void drawHoveredWidget(int mouseX, int mouseY, GuiGraphics drawContext)
+    protected void drawHoveredWidget(int mouseX, int mouseY, GuiGraphicsExtractor drawContext)
     {
         if (!this.shouldRenderHoverStuff())
         {

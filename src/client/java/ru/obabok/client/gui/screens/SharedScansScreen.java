@@ -3,7 +3,7 @@ package ru.obabok.client.gui.screens;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
@@ -31,7 +31,7 @@ public class SharedScansScreen extends Screen {
     @Override
     protected void init() {
         ClientNetwork.requestSharedList();
-        addRenderableWidget(Button.builder(Component.literal("Back"), btn -> minecraft.setScreen(parent))
+        addRenderableWidget(Button.builder(Component.literal("Back"), btn -> minecraft.setScreenAndShow(parent))
                 .bounds(30, height - 30, 80, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("Refresh"), btn -> {
@@ -90,7 +90,7 @@ public class SharedScansScreen extends Screen {
             addRenderableWidget(subscribeBtn);
 
             addRenderableWidget(new Button.Builder(Component.literal("[M]"), button -> {
-                minecraft.setScreen(new MaterialListScreen(this, info.id()));
+                minecraft.setScreenAndShow(new MaterialListScreen(this, info.id()));
             }).bounds(width - 50, y, 20, 20).build());
 
             if(info.ownerUUID().equals(minecraft.player.getUUID()) || minecraft.player.permissions().hasPermission(Permissions.COMMANDS_MODERATOR)){
@@ -123,10 +123,9 @@ public class SharedScansScreen extends Screen {
     }
 
     @Override
-    protected void renderMenuBackground(GuiGraphics guiGraphics) {
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
 
     }
-
 
     private void refresh(){
         ClientNetwork.requestSharedList();
@@ -139,10 +138,10 @@ public class SharedScansScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
-        guiGraphics.drawCenteredString(font, title, width / 2, 10, 0xFFFFFF);
-        guiGraphics.drawString(font, "Server packets queue: " + ClientNetwork.getDebugServerPacketsQueue(), 10, 10, CommonColors.WHITE, false);
-        super.render(guiGraphics, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        graphics.centeredText(font, title, width / 2, 10, 0xFFFFFF);
+        graphics.text(font, "Server packets queue: " + ClientNetwork.getDebugServerPacketsQueue(), 10, 10, CommonColors.WHITE, false);
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
     }
 
 

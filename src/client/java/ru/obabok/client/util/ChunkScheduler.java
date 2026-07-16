@@ -26,7 +26,7 @@ public class ChunkScheduler {
                 boolean processing = true;
                 while (processing){
                     ChunkPos chunkPos = chunkQueue.poll();
-                    if (chunkPos != null && Minecraft.getInstance().level != null && Minecraft.getInstance().level.getChunkSource().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false) != null) {
+                    if (chunkPos != null && Minecraft.getInstance().level != null && Minecraft.getInstance().level.getChunkSource().getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false) != null) {
                         processing = false;
                         Scan.processChunk(Minecraft.getInstance().level, chunkPos);
                     }

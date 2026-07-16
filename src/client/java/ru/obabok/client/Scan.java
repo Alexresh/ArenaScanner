@@ -48,7 +48,7 @@ public class Scan {
         whitelist = WhitelistManager.loadData(currentFilename);
         if(whitelist == null){
             if(Minecraft.getInstance().player != null){
-                Minecraft.getInstance().player.displayClientMessage(Component.literal("Whitelist not found"), false);
+                Minecraft.getInstance().player.sendSystemMessage(Component.literal("Whitelist not found"));
             }
             stopScan();
             return 0;
@@ -164,8 +164,8 @@ public class Scan {
 
     public static void processChunk(ClientLevel world, ChunkPos chunkPos){
         if(isRemoteProcessing() || !processing || range == null || world == null || whitelist == null || chunkPos == null) return;
-        if(world.getChunkSource().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false) == null) return;
-        if((chunkPos.x >= range.min().getX() >> 4) && (chunkPos.x <= range.max().getX() >> 4) && (chunkPos.z >= range.min().getZ() >> 4) && (chunkPos.z <= range.max().getZ() >> 4)){
+        if(world.getChunkSource().getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false) == null) return;
+        if((chunkPos.x() >= range.min().getX() >> 4) && (chunkPos.x() <= range.max().getX() >> 4) && (chunkPos.z() >= range.min().getZ() >> 4) && (chunkPos.z() <= range.max().getZ() >> 4)){
             //delete destroyed blocks from selected blocks
             updateChunk(chunkPos, world);
             //add new blocks to selected blocks
@@ -174,7 +174,7 @@ public class Scan {
                 for (int x = 0; x < 16; x++) {
                     for (int y = range.min().getY(); y <= range.max().getY(); y++) {
                         for (int z = 0; z < 16; z++) {
-                            BlockPos blockPos = new BlockPos(chunkPos.x * 16 + x, y, chunkPos.z * 16 + z);
+                            BlockPos blockPos = new BlockPos(chunkPos.x() * 16 + x, y, chunkPos.z() * 16 + z);
                             processBlock(blockPos, world.getBlockState(blockPos), world);
                         }
                     }
@@ -192,7 +192,7 @@ public class Scan {
         Iterator<BlockPos> iterator = selectedBlocks.iterator();
         while (iterator.hasNext()) {
             BlockPos blockPos = iterator.next();
-            if (blockPos.getX() >> 4 == chunkPos.x && blockPos.getZ() >> 4 == chunkPos.z) {
+            if (blockPos.getX() >> 4 == chunkPos.x() && blockPos.getZ() >> 4 == chunkPos.z()) {
                 if(!BlockMatcher.matches(whitelist, world.getBlockState(blockPos), world, blockPos)){
                     iterator.remove();
                     MaterialListScreen.addBlock(world.getBlockState(blockPos).getBlock(), -1);
@@ -204,7 +204,7 @@ public class Scan {
     private static void checkProcessing(){
         if(processing && selectedBlocks.isEmpty() && unloadedChunks.isEmpty()) {
             if(Minecraft.getInstance().player != null){
-                Minecraft.getInstance().player.displayClientMessage(Component.literal("Scan finished"),false);
+                Minecraft.getInstance().player.sendSystemMessage(Component.literal("Scan finished"));
                 Minecraft.getInstance().player.playSound(SoundEvents.EXPERIENCE_ORB_PICKUP, 1, 1);
             }
             stopScan();

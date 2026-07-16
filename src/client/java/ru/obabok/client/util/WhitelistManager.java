@@ -84,9 +84,9 @@ public class WhitelistManager {
 
     public static int printWhitelist(LocalPlayer player, String whitelist) {
         Whitelist printWhitelist = loadData(whitelist);
-        player.displayClientMessage(Component.literal("Whitelist " + whitelist), false);
+        player.sendSystemMessage(Component.literal("Whitelist " + whitelist));
         for (WhitelistItem whitelistItem : printWhitelist.whitelist) {
-            player.displayClientMessage(Component.literal(whitelistItem.toString()), false);
+            player.sendSystemMessage(Component.literal(whitelistItem.toString()));
         }
         return 1;
     }

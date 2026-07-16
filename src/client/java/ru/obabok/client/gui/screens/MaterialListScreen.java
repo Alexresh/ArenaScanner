@@ -2,7 +2,7 @@ package ru.obabok.client.gui.screens;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -58,13 +58,13 @@ public class MaterialListScreen extends Screen {
 
 
         addRenderableWidget(Button.builder(Component.literal("Back"), button -> {
-            minecraft.setScreen(parent);
+            minecraft.setScreenAndShow(parent);
         }).bounds(10, height - 30, 50, 20).build());
     }
 
     @Override
-    public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
-        this.renderBackground(context, mouseX, mouseY, delta);
+    public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+        this.extractBackground(context, mouseX, mouseY, delta);
 
 
         contentHeight = Math.min(sortedBlocks.size() * ROW_HEIGHT + PADDING * 2, this.height - 60);
@@ -96,23 +96,23 @@ public class MaterialListScreen extends Screen {
             ItemStack stack = getDisplayStack(block);
 
             // Иконка
-            context.renderFakeItem(stack, contentX, y);
+            context.fakeItem(stack, contentX, y);
             String name;
             if(stack.is(Items.AIR)){
                 name = block.getName().getString();
             }else {
                 name = Component.translatable(stack.getItem().getDescriptionId()).getString();
             }
-            context.drawString(font, name, contentX + ICON_SIZE + 4, y + (ROW_HEIGHT - font.lineHeight) / 2, CommonColors.WHITE, false);
+            context.text(font, name, contentX + ICON_SIZE + 4, y + (ROW_HEIGHT - font.lineHeight) / 2, CommonColors.WHITE, false);
 
             // Количество
             String countStr = String.valueOf(count);
             int countWidth = font.width(countStr);
-            context.drawString(font, countStr, contentRight - countWidth, y + (ROW_HEIGHT - font.lineHeight) / 2, CommonColors.YELLOW, false);
+            context.text(font, countStr, contentRight - countWidth, y + (ROW_HEIGHT - font.lineHeight) / 2, CommonColors.YELLOW, false);
         }
 
         // Рамка вокруг контента
-        context.renderOutline(left - 1, top - 1, contentWidth + 2, contentHeight + 2, 0xFFAAAAAA);
+        context.outline(left - 1, top - 1, contentWidth + 2, contentHeight + 2, 0xFFAAAAAA);
 
         // Полоса прокрутки
         if (sortedBlocks.size() > visibleRows) {
@@ -136,9 +136,8 @@ public class MaterialListScreen extends Screen {
                     isDraggingScrollBar ? 0xFFAAAAAA : 0xFF666666);
         }
 
-        super.render(context, mouseX, mouseY, delta);
+        super.extractRenderState(context, mouseX, mouseY, delta);
     }
-
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
@@ -153,7 +152,7 @@ public class MaterialListScreen extends Screen {
     }
 
     @Override
-    protected void renderBlurredBackground(GuiGraphics guiGraphics) {
+    protected void extractBlurredBackground(GuiGraphicsExtractor graphics) {
 
     }
 
@@ -212,7 +211,7 @@ public class MaterialListScreen extends Screen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         if(event.key() == InputConstants.KEY_ESCAPE){
-            minecraft.setScreen(parent);
+            minecraft.setScreenAndShow(parent);
             return true;
         }
         return super.keyPressed(event);
