@@ -1,40 +1,43 @@
 {
-  "schemaVersion": 1,
-  "id": "areascanner",
-  "version": "${version}",
-  "name": "AreaScanner",
-  "description": "",
-  "authors": ["obabok", "hopper4et"],
-  "contributors": ["hopper4et", "__domen__", "qwen", "deepseek", "codex", "mistral ai", "gemini"],
-  "contact": {
-    "discord": "https://discord.com/users/393506669532938240"
-  },
-  "license": "All-Rights-Reserved",
-  "icon": "assets/areascanner/icon.png",
-  "environment": "*",
-  "entrypoints": {
-    "client": [
-      "ru.obabok.areascanner.client.AreaScannerClient"
-    ],
-    "main": [
-      "ru.obabok.areascanner.server.AreaScannerServer"
-    ]
-  },
-  "mixins": [
-    {
-      "config": "areascanner.client.mixins.json",
-      "environment": "client"
-    },
-    {
-      "config": "areascanner.server.mixins.json"
-    }
-  ],
-  "depends": {
-    "fabricloader": ">=${loader_version}",
-    "fabric": "*",
-    "minecraft": "${minecraft_version}"
-  },
-  "suggests": {
-    "malilib": ">=0.23.4"
-  }
+	"schemaVersion": 1,
+	"id": "areascanner",
+	"version": "${version}",
+	"name": "AreaScanner",
+	"description": "",
+	"authors": [
+		"Obabok"
+	],
+	"contributors": ["Hopper4et", "__domen__", "qwen", "deepseek", "codex", "mistral ai", "gemini"],
+	"contact": {
+		"discord": "https://discord.com/users/393506669532938240"
+	},
+	"license": "All-Rights-Reserved",
+	"icon": "assets/areascanner/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"ru.obabok.server.AreaScannerServer"
+		],
+		"client": [
+			"ru.obabok.client.AreaScannerClient"
+		]
+	},
+	"mixins": [
+		{
+			"config": "areascanner.mixins.json"
+		},
+		{
+			"config": "areascanner.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"malilib": ">=0.27.16"
+	}
 }
