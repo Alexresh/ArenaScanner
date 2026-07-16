@@ -10,7 +10,7 @@ import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockBox;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.ChunkPos;
 import ru.obabok.client.network.ClientNetwork;
@@ -64,7 +64,7 @@ public class AreaScannerClient implements ClientModInitializer {
 				}
 			});
 
-			HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(References.MOD_ID, "hud"), HudRender::render);
+			HudElementRegistry.addLast(ResourceLocation.fromNamespaceAndPath(References.MOD_ID, "hud"), HudRender::render);
 			WorldRenderEvents.BEFORE_TRANSLUCENT.register(RenderUtil::renderAll);
 			ChunkScheduler.startProcessing();
 		}

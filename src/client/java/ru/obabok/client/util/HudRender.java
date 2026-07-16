@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import static fi.dy.masa.malilib.render.GuiContext.fromGuiGraphics;
 import static ru.obabok.common.References.LOGGER;
 
 
@@ -66,7 +65,7 @@ public class HudRender {
 
             }
 
-            RenderUtils.renderText(fromGuiGraphics(guiGraphics), Config.Hud.HUD_POS_X.getIntegerValue(), Config.Hud.HUD_POS_Y.getIntegerValue(), Config.Hud.HUD_SCALE.getFloatValue(), CommonColors.WHITE, CommonColors.BLACK, (HudAlignment)Config.Hud.HUD_ALIGNMENT.getOptionListValue(), false, false, lines);
+            RenderUtils.renderText(guiGraphics, Config.Hud.HUD_POS_X.getIntegerValue(), Config.Hud.HUD_POS_Y.getIntegerValue(), Config.Hud.HUD_SCALE.getFloatValue(), CommonColors.WHITE, CommonColors.BLACK, (HudAlignment)Config.Hud.HUD_ALIGNMENT.getOptionListValue(), false, false, lines);
         }
     }
 

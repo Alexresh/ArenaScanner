@@ -42,7 +42,7 @@ dependencies {
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
 	include modImplementation("dev.xpple:clientarguments:${project.clientarguments_version}")
-	modImplementation "fi.dy.masa.malilib:malilib-fabric-1.21.11:${project.malilib_version}"
+	modImplementation "fi.dy.masa.malilib:malilib-fabric-1.21.10:${project.malilib_version}"
 }
 
 processResources {

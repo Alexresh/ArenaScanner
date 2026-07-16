@@ -4,12 +4,11 @@ package ru.obabok.common.network.s2c;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
-import org.jspecify.annotations.NonNull;
+import net.minecraft.resources.ResourceLocation;
 import ru.obabok.common.References;
 
 public record ScanCompletePayload(long jobId) implements CustomPacketPayload {
-    public static final Identifier scan_complete = Identifier.fromNamespaceAndPath(References.MOD_ID, "scan_complete");
+    public static final ResourceLocation scan_complete = ResourceLocation.fromNamespaceAndPath(References.MOD_ID, "scan_complete");
     public static final CustomPacketPayload.Type<ScanCompletePayload> ID = new CustomPacketPayload.Type<>(scan_complete);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ScanCompletePayload> CODEC =
@@ -24,7 +23,7 @@ public record ScanCompletePayload(long jobId) implements CustomPacketPayload {
     }
 
     @Override
-    public @NonNull Type<? extends CustomPacketPayload> type() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

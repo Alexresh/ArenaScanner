@@ -7,15 +7,14 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import org.jspecify.annotations.NonNull;
 import ru.obabok.common.References;
 
 import java.util.Map;
 
 public record MaterialListResponsePayload(long jobId, Map<Block, Integer> materials) implements CustomPacketPayload {
-    public static final Identifier material_list_response = Identifier.fromNamespaceAndPath(References.MOD_ID, "material_list_response");
+    public static final ResourceLocation material_list_response = ResourceLocation.fromNamespaceAndPath(References.MOD_ID, "material_list_response");
     public static final CustomPacketPayload.Type<MaterialListResponsePayload> ID = new CustomPacketPayload.Type<>(material_list_response);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, MaterialListResponsePayload> CODEC = StreamCodec.composite(
@@ -30,7 +29,7 @@ public record MaterialListResponsePayload(long jobId, Map<Block, Integer> materi
     );
 
     @Override
-    public @NonNull Type<? extends CustomPacketPayload> type() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

@@ -9,14 +9,13 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.permissions.Permissions;
 
 import java.util.concurrent.CompletableFuture;
 
 public class ScanConfigCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("scanset")
-                .requires(source -> source.permissions().hasPermission(Permissions.COMMANDS_MODERATOR))
+                .requires(source -> source.hasPermission(2))
                 .then(Commands.argument("key", StringArgumentType.word())
                         .suggests((ctx, builder) -> suggestKeys(builder))
                         .executes(ScanConfigCommand::showCurrentValue)

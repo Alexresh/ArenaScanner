@@ -17,7 +17,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.CommonColors;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
@@ -50,7 +50,7 @@ public class RenderUtil {
     private static final Matrix4f TEXTURE_MATRIX = new Matrix4f();
     //new
     private static final RenderPipeline BLOCKS_RENDER = RenderPipelines.register(RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath(References.MOD_ID, "pipeline/box"))
+            .withLocation(ResourceLocation.fromNamespaceAndPath(References.MOD_ID, "pipeline/box"))
             .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
             .build()
     );
@@ -192,7 +192,7 @@ public class RenderUtil {
         return new Vec3(forward.x, forward.y, forward.z);
     }
 
-    private static void addMediumDetailCube(Matrix4fc matrix, BufferBuilder buffer,
+    private static void addMediumDetailCube(Matrix4f matrix, BufferBuilder buffer,
                                             double x1, double y1, double z1, double x2, double y2, double z2,
                                             Vec3 camera, Color4f color) {
         float rx1 = (float)(x1 - camera.x);
@@ -209,7 +209,7 @@ public class RenderUtil {
     }
 
 
-    private static void addBillboardLOD(Matrix4fc viewMatrix, BufferBuilder buffer, double blockX, double blockY, double blockZ, Vec3 camera, Color4f color, float width, float height) {
+    private static void addBillboardLOD(Matrix4f viewMatrix, BufferBuilder buffer, double blockX, double blockY, double blockZ, Vec3 camera, Color4f color, float width, float height) {
 
         double dx = blockX + 0.5 - camera.x;
         double dy = blockY + 0.5 - camera.y;
@@ -267,7 +267,7 @@ public class RenderUtil {
     }
 
 
-    private static void addQuad(BufferBuilder buffer, Matrix4fc matrix,
+    private static void addQuad(BufferBuilder buffer, Matrix4f matrix,
                                 float x1, float y1, float z1, float x2, float y2, float z2,
                                 float x3, float y3, float z3, float x4, float y4, float z4, Color4f color) {
         buffer.addVertex(matrix, x1, y1, z1).setColor(color.r, color.g, color.b, color.a);
@@ -277,7 +277,7 @@ public class RenderUtil {
     }
 
 
-    private static void newRenderFilledBox(Matrix4fc positionMatrix, BufferBuilder buffer, double x1, double y1, double z1, double x2, double y2, double z2, Vec3 camera, Color4f color) {
+    private static void newRenderFilledBox(Matrix4f positionMatrix, BufferBuilder buffer, double x1, double y1, double z1, double x2, double y2, double z2, Vec3 camera, Color4f color) {
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y1 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y1 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y2 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
@@ -315,7 +315,7 @@ public class RenderUtil {
 
     }
 
-    private static void filledPlane(Matrix4fc positionMatrix, BufferBuilder buffer, double x1, double z1, double x2, double z2, double y, Vec3 camera, Color4f color){
+    private static void filledPlane(Matrix4f positionMatrix, BufferBuilder buffer, double x1, double z1, double x2, double z2, double y, Vec3 camera, Color4f color){
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
@@ -387,7 +387,7 @@ public class RenderUtil {
         }
 
         GpuBufferSlice dynamicTransforms = RenderSystem.getDynamicUniforms()
-                .writeTransform(RenderSystem.getModelViewMatrix(), COLOR_MODULATOR, MODEL_OFFSET, TEXTURE_MATRIX);
+                .writeTransform(RenderSystem.getModelViewMatrix(), COLOR_MODULATOR, MODEL_OFFSET, TEXTURE_MATRIX, 1f);
         try (RenderPass renderPass = RenderSystem.getDevice()
                 .createCommandEncoder()
                 .createRenderPass(() -> References.MOD_ID + " example render pipeline rendering", client.getMainRenderTarget().getColorTextureView(), OptionalInt.empty(), client.getMainRenderTarget().getDepthTextureView(), OptionalDouble.empty())) {

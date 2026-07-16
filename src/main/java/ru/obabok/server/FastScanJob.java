@@ -89,7 +89,7 @@ public class FastScanJob {
     }
 
     public JobInfo getInfo(){
-        return new JobInfo(jobId, sharedName, owner.getName().getString(), owner.getUUID(), world.dimension().identifier().getPath(), range, whitelistName, chunkCursor.size(), processedChunks, selectedBlocks.size(), scanCompleted);
+        return new JobInfo(jobId, sharedName, owner.getName().getString(), owner.getUUID(), world.dimension().registry().getPath(), range, whitelistName, chunkCursor.size(), processedChunks, selectedBlocks.size(), scanCompleted);
     }
 
     public void tick(){
@@ -247,7 +247,7 @@ public class FastScanJob {
 
     private void updateChunkProcess(){
         for (int i = 0; i < subscribers.size(); i++) {
-            if(subscribers.get(i).level().dimension().identifier() != world.dimension().identifier()){
+            if(subscribers.get(i).level().dimension().registry() != world.dimension().registry()){
                 ServerPlayNetworking.send(subscribers.get(i), new ScanFullCompletedPayload(jobId, "Wrong world", false));
                 unsubscribe(subscribers.get(i));
                 return;

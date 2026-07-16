@@ -5,8 +5,7 @@ import net.minecraft.core.BlockBox;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
-import org.jspecify.annotations.NonNull;
+import net.minecraft.resources.ResourceLocation;
 import ru.obabok.common.References;
 import ru.obabok.server.network.ScanPacketUtils;
 
@@ -17,7 +16,7 @@ public record ScanStartPayload(
         String whitelistJson,
         String shareName
 ) implements CustomPacketPayload {
-    public static final Identifier scan_start = Identifier.fromNamespaceAndPath(References.MOD_ID, "scan_start");
+    public static final ResourceLocation scan_start = ResourceLocation.fromNamespaceAndPath(References.MOD_ID, "scan_start");
     public static final CustomPacketPayload.Type<ScanStartPayload> ID = new CustomPacketPayload.Type<>(scan_start);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ScanStartPayload> CODEC =
@@ -44,7 +43,7 @@ public record ScanStartPayload(
     }
 
     @Override
-    public @NonNull Type<? extends CustomPacketPayload> type() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

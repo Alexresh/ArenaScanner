@@ -8,7 +8,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.permissions.Permissions;
 import net.minecraft.util.CommonColors;
 import ru.obabok.client.network.ClientNetwork;
 import ru.obabok.common.model.JobInfo;
@@ -93,7 +92,7 @@ public class SharedScansScreen extends Screen {
                 minecraft.setScreen(new MaterialListScreen(this, info.id()));
             }).bounds(width - 50, y, 20, 20).build());
 
-            if(info.ownerUUID().equals(minecraft.player.getUUID()) || minecraft.player.permissions().hasPermission(Permissions.COMMANDS_MODERATOR)){
+            if(info.ownerUUID().equals(minecraft.player.getUUID()) || minecraft.player.hasPermissions(2)){
                 addRenderableWidget(Button.builder(Component.literal("X"), btn -> {
                     ClientNetwork.deleteScan(info.id());
                     refresh();

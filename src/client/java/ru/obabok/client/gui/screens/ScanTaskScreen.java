@@ -230,8 +230,8 @@ public class ScanTaskScreen extends ScreenPlus {
         }
 
         startButton.active = whitelistSelectorList.getSelectedEntry() != null && !whitelistSelectorList.getSelectedEntry().isEmpty() && Scan.getRange() != null && !Scan.isProcessing();
-        context.renderOutline(15,15, 110, 150, CommonColors.LIGHT_GRAY);
-        context.renderOutline(135,15, 110, 150, CommonColors.LIGHT_GRAY);
+        context.submitOutline(15,15, 110, 150, CommonColors.LIGHT_GRAY);
+        context.submitOutline(135,15, 110, 150, CommonColors.LIGHT_GRAY);
         for (CoordButton entry : coordButtons) {
             if (entry.button.isMouseOver(mouseX, mouseY)) {
                 List<Component> tooltip = List.of(

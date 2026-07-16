@@ -3,13 +3,12 @@ package ru.obabok.common.network.c2s;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
-import org.jspecify.annotations.NonNull;
+import net.minecraft.resources.ResourceLocation;
 import ru.obabok.common.References;
 
 
 public record ScanSubscribePayload(long jobId) implements CustomPacketPayload {
-    public static final Identifier scan_subscribe = Identifier.fromNamespaceAndPath(References.MOD_ID, "scan_subscribe");
+    public static final ResourceLocation scan_subscribe = ResourceLocation.fromNamespaceAndPath(References.MOD_ID, "scan_subscribe");
     public static final CustomPacketPayload.Type<ScanSubscribePayload> ID = new CustomPacketPayload.Type<>(scan_subscribe);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ScanSubscribePayload> CODEC =
@@ -24,7 +23,7 @@ public record ScanSubscribePayload(long jobId) implements CustomPacketPayload {
     }
 
     @Override
-    public @NonNull Type<? extends CustomPacketPayload> type() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

@@ -1,7 +1,7 @@
 package ru.obabok.client.models;
 
 import fi.dy.masa.malilib.gui.widgets.WidgetBase;
-import fi.dy.masa.malilib.render.GuiContext;
+import fi.dy.masa.malilib.render.RenderContext;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -56,7 +56,7 @@ public class ScreenPlus extends Screen {
         {
             for (WidgetBase widget : this.widgets)
             {
-                widget.render(GuiContext.fromGuiGraphics(drawContext), mouseX, mouseY, false);
+                widget.render(drawContext, mouseX, mouseY, false);
 
                 if (widget.isMouseOver(mouseX, mouseY))
                 {
@@ -104,7 +104,7 @@ public class ScreenPlus extends Screen {
 
         if (this.hoveredWidget != null)
         {
-            this.hoveredWidget.postRenderHovered(GuiContext.fromGuiGraphics(drawContext), mouseX, mouseY, false);
+            this.hoveredWidget.postRenderHovered(drawContext, mouseX, mouseY, false);
         }
     }
 

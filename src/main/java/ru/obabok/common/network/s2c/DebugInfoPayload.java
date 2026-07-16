@@ -4,12 +4,11 @@ package ru.obabok.common.network.s2c;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
-import org.jspecify.annotations.NonNull;
+import net.minecraft.resources.ResourceLocation;
 import ru.obabok.common.References;
 
 public record DebugInfoPayload(int networkQueueSize) implements CustomPacketPayload {
-    public static final Identifier debug_info = Identifier.fromNamespaceAndPath(References.MOD_ID, "debug_info");
+    public static final ResourceLocation debug_info = ResourceLocation.fromNamespaceAndPath(References.MOD_ID, "debug_info");
     public static final CustomPacketPayload.Type<DebugInfoPayload> ID = new CustomPacketPayload.Type<>(debug_info);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, DebugInfoPayload> CODEC =
@@ -24,7 +23,7 @@ public record DebugInfoPayload(int networkQueueSize) implements CustomPacketPayl
     }
 
     @Override
-    public @NonNull Type<? extends CustomPacketPayload> type() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

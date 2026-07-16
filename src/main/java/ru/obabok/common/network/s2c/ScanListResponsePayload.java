@@ -4,8 +4,7 @@ package ru.obabok.common.network.s2c;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.Identifier;
-import org.jspecify.annotations.NonNull;
+import net.minecraft.resources.ResourceLocation;
 import ru.obabok.common.References;
 import ru.obabok.common.model.JobInfo;
 
@@ -13,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record ScanListResponsePayload(List<JobInfo> scans) implements CustomPacketPayload {
-    public static final Identifier shared_scan_list = Identifier.fromNamespaceAndPath(References.MOD_ID, "shared_scan_list");
+    public static final ResourceLocation shared_scan_list = ResourceLocation.fromNamespaceAndPath(References.MOD_ID, "shared_scan_list");
     public static final CustomPacketPayload.Type<ScanListResponsePayload> ID = new CustomPacketPayload.Type<>(shared_scan_list);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, ScanListResponsePayload> CODEC =
@@ -40,7 +39,7 @@ public record ScanListResponsePayload(List<JobInfo> scans) implements CustomPack
     }
 
     @Override
-    public @NonNull Type<? extends CustomPacketPayload> type() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 }

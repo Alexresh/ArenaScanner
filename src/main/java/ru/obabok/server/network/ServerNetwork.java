@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockBox;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.permissions.Permissions;
 import ru.obabok.common.NetworkPackets;
 import ru.obabok.common.References;
 import ru.obabok.common.model.JobInfo;
@@ -29,7 +28,7 @@ public class ServerNetwork {
 
         ServerPlayNetworking.registerGlobalReceiver(ScanStopPayload.ID, (payload, context) -> {
             ServerPlayer player = context.player();
-            if(player.permissions().hasPermission(Permissions.COMMANDS_MODERATOR)){
+            if(player.hasPermissions(2)){
                 ServerScanManager.getInstance().stopOPJob(payload.jobId());
             }else {
                 ServerScanManager.getInstance().stopJob(player, payload.jobId(), payload.cause());

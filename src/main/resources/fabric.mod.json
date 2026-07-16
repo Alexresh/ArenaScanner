@@ -33,11 +33,11 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.19.3",
-		"minecraft": "~1.21.11",
+		"minecraft": "~1.21.10",
 		"java": ">=21",
 		"fabric-api": "*"
 	},
 	"suggests": {
-		"malilib": ">=0.27.16"
+		"malilib": ">=0.26.8"
 	}
 }

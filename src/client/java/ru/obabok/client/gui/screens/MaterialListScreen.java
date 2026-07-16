@@ -112,7 +112,7 @@ public class MaterialListScreen extends Screen {
         }
 
         // Рамка вокруг контента
-        context.renderOutline(left - 1, top - 1, contentWidth + 2, contentHeight + 2, 0xFFAAAAAA);
+        context.submitOutline(left - 1, top - 1, contentWidth + 2, contentHeight + 2, 0xFFAAAAAA);
 
         // Полоса прокрутки
         if (sortedBlocks.size() > visibleRows) {

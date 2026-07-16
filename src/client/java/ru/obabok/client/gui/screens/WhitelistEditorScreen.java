@@ -9,7 +9,7 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.CommonColors;
 import net.minecraft.world.level.block.Blocks;
 import ru.obabok.client.Scan;
@@ -192,8 +192,8 @@ public class WhitelistEditorScreen extends ScreenPlus {
     @Override
     public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         try {
-            if(!blockInput.getValue().isEmpty() && BuiltInRegistries.BLOCK.containsKey(Identifier.parse(blockInput.getValue()))){
-                createdWhitelistItem.block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockInput.getValue()));
+            if(!blockInput.getValue().isEmpty() && BuiltInRegistries.BLOCK.containsKey(ResourceLocation.parse(blockInput.getValue()))){
+                createdWhitelistItem.block = BuiltInRegistries.BLOCK.getValue(ResourceLocation.parse(blockInput.getValue()));
             }else createdWhitelistItem.block = null;
         }catch (Exception ignored){}
         //waterlogged
@@ -212,8 +212,8 @@ public class WhitelistEditorScreen extends ScreenPlus {
         }else createdWhitelistItem.blastResistance = null;
 
         //borders
-        context.renderOutline(20,20, 245, 265, CommonColors.LIGHT_GRAY);
-        context.renderOutline(275,20, 130, height - 80, CommonColors.LIGHT_GRAY);
+        context.submitOutline(20,20, 245, 265, CommonColors.LIGHT_GRAY);
+        context.submitOutline(275,20, 130, height - 80, CommonColors.LIGHT_GRAY);
 
         addToWhitelistBtn.active = validateCreatedWhitelistItem();
         super.render(context, mouseX, mouseY, delta);
