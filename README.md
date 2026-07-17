@@ -35,6 +35,8 @@ Comprehensive documentation is available in our [Wiki](https://github.com/Alexre
 
 ## 💡 How It Works
 
+"alt + ]" = open config screen
+
 ### Client-Side Scanning
 - Scan your area using command or ui
 - Yellow rectangles indicate chunks that need to be loaded (colors are customizable)
