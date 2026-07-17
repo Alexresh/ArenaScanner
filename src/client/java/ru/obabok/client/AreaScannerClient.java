@@ -65,7 +65,7 @@ public class AreaScannerClient implements ClientModInitializer {
 			});
 
 			HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(References.MOD_ID, "hud"), HudRender::render);
-			LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(RenderUtil::renderAll);
+			LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(RenderUtil::render);
 			ChunkScheduler.startProcessing();
 		}
 	}

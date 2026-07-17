@@ -46,21 +46,19 @@ public class RenderUtil {
     private static final Minecraft client = Minecraft.getInstance();
 
     private static final ByteBufferBuilder allocator = new ByteBufferBuilder(1024 * 1024 * 2); // 2 MB
-    //private static final ByteBufferBuilder allocator = new ByteBufferBuilder(RenderType.BIG_BUFFER_SIZE);
-    private static BufferBuilder blockBuffer;
-    private static MappableRingBuffer blockVertexBuffer;
+    private static BufferBuilder buffer;
     private static final Vector4f COLOR_MODULATOR = new Vector4f(1f, 1f, 1f, 1f);
     private static final Vector3f MODEL_OFFSET = new Vector3f();
     private static final Matrix4f TEXTURE_MATRIX = new Matrix4f();
     //new
     private static final RenderPipeline BLOCKS_RENDER = RenderPipelines.register(RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath(References.MOD_ID, "pipeline/box")).withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, true))
+            .withLocation(Identifier.fromNamespaceAndPath(References.MOD_ID, "pipeline/box")).withDepthStencilState(Optional.empty())
             .build()
     );
     private static final ByteBufferBuilder sortAllocator = new ByteBufferBuilder(1024 * 1024);
 
 
-    public static void renderAll(LevelRenderContext context) {
+    public static void render(LevelRenderContext context) {
         if(!Config.Generic.MAIN_RENDER.getBooleanValue()) return;
         if(Minecraft.getInstance().gui.hud.isHidden()) return;
         BlockBox scanRange = Scan.getRange();
@@ -83,11 +81,15 @@ public class RenderUtil {
 
         if(!renderChunksList.isEmpty() || !renderBlocksList.isEmpty()){
             try {
+
                 context.poseStack().pushPose();
+                //matrices.translate(-camera.x, -camera.y, -camera.z);
+                if (buffer == null) {
+                    buffer = new BufferBuilder(allocator, BLOCKS_RENDER.getPrimitiveTopology(), BLOCKS_RENDER.getVertexFormatBinding(0));
+                }
+                prepareRenderChunks(context);
 
-                blockBuffer = prepareRenderChunks(context, blockBuffer);
-
-                blockBuffer = prepareRenderBlocksOptimized(context, blockBuffer);
+                prepareRenderBlocksOptimized(context);
                 context.poseStack().popPose();
                 renderAll(Minecraft.getInstance(), BLOCKS_RENDER, context.poseStack());
             }catch (Exception ignored){
@@ -98,16 +100,12 @@ public class RenderUtil {
     }
 
 
-    private static BufferBuilder prepareRenderChunks(LevelRenderContext context, BufferBuilder buffer){
-        if(renderChunksList.isEmpty()) return buffer;
+    private static void prepareRenderChunks(LevelRenderContext context){
+        if(renderChunksList.isEmpty()) return;
         PoseStack matrices = context.poseStack();
         Vec3 camera = context.levelState().cameraRenderState.pos;
 
         //matrices.pushPose();
-
-        if (buffer == null) {
-            buffer = new BufferBuilder(allocator, BLOCKS_RENDER.getPrimitiveTopology(), BLOCKS_RENDER.getVertexFormatBinding(0));
-        }
 
         Color4f chunkColor = Config.Generic.UNLOADED_CHUNK_COLOR.getColor();
         int maxChunkDist = Config.Generic.UNLOADED_CHUNK_MAX_DISTANCE.getIntegerValue();
@@ -128,27 +126,21 @@ public class RenderUtil {
                     continue;
                 }
             }
-            filledPlane(matrices.last().pose(), buffer, pos.x() << 4, pos.z() << 4, (pos.x() << 4) + 16, (pos.z() << 4) + 16, camera.y + offset, camera, chunkColor);
+            filledPlane(matrices.last().pose(), pos.x() << 4, pos.z() << 4, (pos.x() << 4) + 16, (pos.z() << 4) + 16, camera.y + offset, camera, chunkColor);
         }
         //matrices.popPose();
-        return buffer;
     }
 
-    private static BufferBuilder prepareRenderBlocksOptimized(LevelRenderContext context, BufferBuilder buffer) {
-        if(renderBlocksList.isEmpty()) return buffer;
+    private static void prepareRenderBlocksOptimized(LevelRenderContext context) {
+        if(renderBlocksList.isEmpty()) return;
 
         PoseStack matrices = context.poseStack();
         Vec3 camera = context.levelState().cameraRenderState.pos;
         Quaternionf orientation = context.levelState().cameraRenderState.orientation;
 
-        // Извлекаем направление взгляда из кватерниона
         Vec3 lookDirection = getLookDirection(orientation);
 
         matrices.pushPose();
-
-        if (buffer == null) {
-            buffer = new BufferBuilder(allocator, BLOCKS_RENDER.getPrimitiveTopology(), BLOCKS_RENDER.getVertexFormatBinding(0));
-        }
 
         int maxDistance = Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue();
         boolean checkDistance = maxDistance != -1;
@@ -172,22 +164,22 @@ public class RenderUtil {
 
             //LOD
             if (distXZ < (double) Config.Generic.LOD1.getIntegerValue()) {
-                newRenderFilledBox(matrices.last().pose(), buffer,
+                newRenderFilledBox(matrices.last().pose(),
                         pos.getX(), pos.getY(), pos.getZ(),
                         pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1,
                         camera, color);
             } else if (distXZ < Config.Generic.LOD2.getIntegerValue()) {
-                addMediumDetailCube(matrices.last().pose(), buffer,  pos.getX(), pos.getY(), pos.getZ(),
+                addMediumDetailCube(matrices.last().pose(),  pos.getX(), pos.getY(), pos.getZ(),
                         pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1, camera, color);
             } else if (distXZ < Config.Generic.LOD2_HORIZON.getIntegerValue()) {
-                addBillboardLOD(matrices.last().pose(), buffer,  pos.getX(), pos.getY(), pos.getZ(), camera, color, 1, 1);
+                addBillboardLOD(matrices.last().pose(),  pos.getX(), pos.getY(), pos.getZ(), camera, color, 1, 1);
             } else if (Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue() < 0 || distXZ < Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue()) {
-                addBillboardLOD(matrices.last().pose(), buffer,  pos.getX(), camera.y, pos.getZ(), camera, color, 2, 5);
+                addBillboardLOD(matrices.last().pose(),  pos.getX(), camera.y, pos.getZ(), camera, color, 2, 5);
             }
         }
 
         matrices.popPose();
-        return buffer;
+        return;
     }
 
     private static Vec3 getLookDirection(Quaternionf orientation) {
@@ -196,7 +188,7 @@ public class RenderUtil {
         return new Vec3(forward.x, forward.y, forward.z);
     }
 
-    private static void addMediumDetailCube(Matrix4fc matrix, BufferBuilder buffer,
+    private static void addMediumDetailCube(Matrix4fc matrix,
                                             double x1, double y1, double z1, double x2, double y2, double z2,
                                             Vec3 camera, Color4f color) {
         float rx1 = (float)(x1 - camera.x);
@@ -206,14 +198,14 @@ public class RenderUtil {
         float ry2 = (float)(y2 - camera.y);
         float rz2 = (float)(z2 - camera.z);
 
-        addQuad(buffer, matrix, rx1, ry1, rz2, rx2, ry1, rz2, rx2, ry2, rz2, rx1, ry2, rz2, color);
-        addQuad(buffer, matrix, rx2, ry1, rz1, rx1, ry1, rz1, rx1, ry2, rz1, rx2, ry2, rz1, color);
-        addQuad(buffer, matrix, rx1, ry1, rz1, rx1, ry1, rz2, rx1, ry2, rz2, rx1, ry2, rz1, color);
-        addQuad(buffer, matrix, rx2, ry1, rz2, rx2, ry1, rz1, rx2, ry2, rz1, rx2, ry2, rz2, color);
+        addQuad(matrix, rx1, ry1, rz2, rx2, ry1, rz2, rx2, ry2, rz2, rx1, ry2, rz2, color);
+        addQuad(matrix, rx2, ry1, rz1, rx1, ry1, rz1, rx1, ry2, rz1, rx2, ry2, rz1, color);
+        addQuad(matrix, rx1, ry1, rz1, rx1, ry1, rz2, rx1, ry2, rz2, rx1, ry2, rz1, color);
+        addQuad(matrix, rx2, ry1, rz2, rx2, ry1, rz1, rx2, ry2, rz1, rx2, ry2, rz2, color);
     }
 
 
-    private static void addBillboardLOD(Matrix4fc viewMatrix, BufferBuilder buffer, double blockX, double blockY, double blockZ, Vec3 camera, Color4f color, float width, float height) {
+    private static void addBillboardLOD(Matrix4fc viewMatrix, double blockX, double blockY, double blockZ, Vec3 camera, Color4f color, float width, float height) {
 
         double dx = blockX + 0.5 - camera.x;
         double dy = blockY + 0.5 - camera.y;
@@ -267,13 +259,11 @@ public class RenderUtil {
         float p4y = cy - (float)(rightY * halfW) + (float)(trueUpY * halfH);
         float p4z = cz - (float)(rightZ * halfW) + (float)(trueUpZ * halfH);
 
-        addQuad(buffer, viewMatrix, p1x, p1y, p1z, p2x, p2y, p2z, p3x, p3y, p3z, p4x, p4y, p4z, color);
+        addQuad(viewMatrix, p1x, p1y, p1z, p2x, p2y, p2z, p3x, p3y, p3z, p4x, p4y, p4z, color);
     }
 
 
-    private static void addQuad(BufferBuilder buffer, Matrix4fc matrix,
-                                float x1, float y1, float z1, float x2, float y2, float z2,
-                                float x3, float y3, float z3, float x4, float y4, float z4, Color4f color) {
+    private static void addQuad(Matrix4fc matrix, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, Color4f color) {
         buffer.addVertex(matrix, x1, y1, z1).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(matrix, x2, y2, z2).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(matrix, x3, y3, z3).setColor(color.r, color.g, color.b, color.a);
@@ -281,37 +271,32 @@ public class RenderUtil {
     }
 
 
-    private static void newRenderFilledBox(Matrix4fc positionMatrix, BufferBuilder buffer, double x1, double y1, double z1, double x2, double y2, double z2, Vec3 camera, Color4f color) {
+    private static void newRenderFilledBox(Matrix4fc positionMatrix, double x1, double y1, double z1, double x2, double y2, double z2, Vec3 camera, Color4f color) {
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y1 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y1 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y2 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y2 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
 
-        // Back face
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y1 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y1 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y2 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y2 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
 
-        // Left face
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y1 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y1 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y2 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y2 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
 
-        // Right face
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y1 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y1 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y2 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y2 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
 
-        // Top face
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y2 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y2 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y2 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y2 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
 
-        // Bottom face
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y1 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y1 - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y1 - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
@@ -319,7 +304,7 @@ public class RenderUtil {
 
     }
 
-    private static void filledPlane(Matrix4fc positionMatrix, BufferBuilder buffer, double x1, double z1, double x2, double z2, double y, Vec3 camera, Color4f color){
+    private static void filledPlane(Matrix4fc positionMatrix, double x1, double z1, double x2, double z2, double y, Vec3 camera, Color4f color){
         buffer.addVertex(positionMatrix, (float)(x1 - camera.x), (float)(y - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y - camera.y), (float)(z2 - camera.z)).setColor(color.r, color.g, color.b, color.a);
         buffer.addVertex(positionMatrix, (float)(x2 - camera.x), (float)(y - camera.y), (float)(z1 - camera.z)).setColor(color.r, color.g, color.b, color.a);
@@ -328,53 +313,43 @@ public class RenderUtil {
 
 
     public static void renderAll(Minecraft client, RenderPipeline pipeline, PoseStack matrices) {
-        if (blockBuffer == null) return;
+        if (buffer == null) return;
 
         MeshData builtBuffer;
         try {
-            builtBuffer = blockBuffer.buildOrThrow();
+            builtBuffer = buffer.buildOrThrow();
         } catch (IllegalStateException e) {
-            blockBuffer = null;
+            buffer = null;
             return;
         }
 
-        // Если вершин нет, сразу очищаем и выходим
         if (builtBuffer.drawState().vertexCount() == 0) {
             builtBuffer.close();
-            blockBuffer = null;
+            buffer = null;
             return;
         }
 
-        // 1. НОВЫЙ СПОСОБ ЗАГРУЗКИ В GPU (вместо MappableRingBuffer и memCopy)
-        // Мы создаем GpuBuffer напрямую из ByteBuffer, который лежит внутри MeshData
         GpuBuffer vertexBuffer = RenderSystem.getDevice().createBuffer(
                 () -> "mod_vertex_buffer",
                 GpuBuffer.USAGE_VERTEX,
                 builtBuffer.vertexBuffer()
         );
 
-        // 2. Рендерим
         draw(client, pipeline, builtBuffer, vertexBuffer, matrices);
 
-        // 3. Очистка
         builtBuffer.close();
-        blockBuffer = null; // Сбрасываем для следующего кадра
+        buffer = null;
     }
 
     private static void draw(Minecraft client, RenderPipeline pipeline, MeshData builtBuffer, GpuBuffer vertexBuffer, PoseStack matrices) {
         MeshData.DrawState drawParameters = builtBuffer.drawState();
 
-
-        // 2. Обработка индексов
         GpuBuffer indices;
         IndexType indexType;
 
-        // Проверяем, нужно ли сортировать квады.
-        // В новом API SortState возвращает null, если сортировка не нужна или невозможна.
         MeshData.SortState sortState = builtBuffer.sortQuads(sortAllocator, RenderSystem.getProjectionType().vertexSorting());
 
         if (sortState != null) {
-            // Если сортировка прошла успешно, используем индексный буфер из меша
             indices = RenderSystem.getDevice().createBuffer(
                     () -> "mod_index_buffer",
                     GpuBuffer.USAGE_INDEX,
@@ -382,23 +357,17 @@ public class RenderUtil {
             );
             indexType = drawParameters.indexType();
         } else {
-            // Если это не квады (или сортировка не удалась), используем системный последовательный буфер
-            // RenderSystem.getSequentialBuffer обычно требует PrimitiveTopology или похожий энум.
-            // Если у тебя нет доступа к Mode, попробуй получить топологию из пайплайна, если есть такой метод.
-            // Если нет, используй TRIANGLES по умолчанию для безопасности.
             RenderSystem.AutoStorageIndexBuffer shapeIndexBuffer = RenderSystem.getSequentialBuffer(PrimitiveTopology.TRIANGLES);
             indices = shapeIndexBuffer.getBuffer(drawParameters.indexCount());
             indexType = shapeIndexBuffer.type();
         }
 
-        // 3. Подготовка трансформаций
-        Matrix4f modelView = matrices.last().pose();
         GpuBufferSlice[] transforms = RenderSystem.getDynamicUniforms().writeTransforms(
                 new DynamicUniforms.Transform(
-                        new Matrix4f(modelView),
-                        new Vector4f(1.0F, 1.0F, 1.0F, 1.0F),
-                        new Vector3f(0.0F, 0.0F, 0.0F),
-                        new Matrix4f()
+                        RenderSystem.getModelViewMatrixCopy(),
+                        COLOR_MODULATOR,
+                        MODEL_OFFSET,
+                        TEXTURE_MATRIX
                 )
         );
 
@@ -420,11 +389,9 @@ public class RenderUtil {
             renderPass.setVertexBuffer(0, vertexBuffer.slice());
             renderPass.setIndexBuffer(indices, indexType);
 
-            // Используем твою сигнатуру: drawIndexed(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance)
             renderPass.drawIndexed(drawParameters.indexCount(), 1, 0, 0, 0);
         }
 
-        // 5. Очистка
         vertexBuffer.close();
         if (sortState != null) {
             indices.close();
