@@ -3,6 +3,7 @@ package ru.obabok.client;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.fabric.api.event.client.player.ClientPlayerBlockBreakEvents;
@@ -67,6 +68,7 @@ public class AreaScannerClient implements ClientModInitializer {
 			HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(References.MOD_ID, "hud"), HudRender::render);
 			LevelRenderEvents.AFTER_TRANSLUCENT_TERRAIN.register(RenderUtil::render);
 			ChunkScheduler.startProcessing();
+			ClientLifecycleEvents.CLIENT_STOPPING.register(ChunkScheduler::stopProcessing);
 		}
 	}
 }
