@@ -45,6 +45,7 @@ public class Config implements IConfigHandler {
         public static final ConfigInteger LOD1 = new ConfigInteger("LOD1", 30).apply(GENERIC_KEY);
         public static final ConfigInteger LOD2 = new ConfigInteger("LOD2", 50).apply(GENERIC_KEY);
         public static final ConfigInteger LOD2_HORIZON = new ConfigInteger("LOD2_horizon", 100).apply(GENERIC_KEY);
+        public static final ConfigBoolean LOD2_HUD = new ConfigBoolean("LOD2_hud", true).apply(GENERIC_KEY);
         public static final ConfigHotkey LOOK_RANDOM_SELECTED_BLOCK = new ConfigHotkey("lookRandomSelectedBlock", "").apply(GENERIC_KEY);
         public static final ConfigBooleanHotkeyed MAIN_RENDER = new ConfigBooleanHotkeyed("mainRender", true, "").apply(GENERIC_KEY);
         public static final ConfigHotkey MAIN = new ConfigHotkey("mainHotkey", "LEFT_ALT,RIGHT_BRACKET").apply(GENERIC_KEY);
@@ -56,6 +57,7 @@ public class Config implements IConfigHandler {
                 LOD1,
                 LOD2,
                 LOD2_HORIZON,
+                LOD2_HUD,
 
                 UNLOADED_CHUNK_Y_OFFSET,
                 //UNLOADED_CHUNK_SCALE,

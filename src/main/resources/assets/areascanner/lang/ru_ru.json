@@ -20,6 +20,8 @@
   "areascanner.config.generic.comment.LOD2": "Расстояние на котором выделенные блоки станут одним квадом",
   "areascanner.config.generic.name.LOD2_horizon": "LOD2 - горизонт",
   "areascanner.config.generic.comment.LOD2_horizon": "Расстояние на котором выделенные блоки будут летать на уровне глаз",
+  "areascanner.config.generic.name.LOD2_hud": "Отображать LOD2 блоки в худе",
+  "areascanner.config.generic.comment.LOD2_hud": "Они будут всегда рендерится",
   "areascanner.config.generic.name.unloadedChunkYOffset": "Смещение непросканированных чанков по y",
   "areascanner.config.generic.comment.unloadedChunkYOffset": "Смещает непросканированные чанки по оси y, относительно игрока чтобы они всегда были видны",
   "areascanner.config.generic.name.unloadedChunkScale": "Масштаб отображения непросканированных чанков",

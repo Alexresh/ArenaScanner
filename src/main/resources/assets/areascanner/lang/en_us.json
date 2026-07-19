@@ -20,6 +20,8 @@
   "areascanner.config.generic.comment.LOD2": "Distance at which selected blocks will become a single quad",
   "areascanner.config.generic.name.LOD2_horizon": "LOD2 - horizon",
   "areascanner.config.generic.comment.LOD2_horizon": "Distance at which selected blocks will fly at eye level",
+  "areascanner.config.generic.name.LOD2_hud": "Display LOD2 blocks in HUD",
+  "areascanner.config.generic.comment.LOD2_hud": "Will never stop rendering",
   "areascanner.config.generic.name.unloadedChunkYOffset": "Unscanned chunks y-offset",
   "areascanner.config.generic.comment.unloadedChunkYOffset": "todo",
   "areascanner.config.generic.name.unloadedChunkScale": "Unscanned chunks render scale",

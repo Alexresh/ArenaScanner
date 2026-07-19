@@ -41,7 +41,7 @@ import static fi.dy.masa.malilib.render.RenderUtils.renderAreaOutline;
 import static fi.dy.masa.malilib.render.RenderUtils.renderAreaSides;
 
 public class RenderUtil {
-    private static final List<BlockPos> renderBlocksList = new CopyOnWriteArrayList<>();
+    public static final List<BlockPos> renderBlocksList = new CopyOnWriteArrayList<>();
     private static final List<ChunkPos> renderChunksList = new CopyOnWriteArrayList<>();
     private static final Minecraft client = Minecraft.getInstance();
 
@@ -83,7 +83,6 @@ public class RenderUtil {
             try {
 
                 context.poseStack().pushPose();
-                //matrices.translate(-camera.x, -camera.y, -camera.z);
                 if (buffer == null) {
                     buffer = new BufferBuilder(allocator, BLOCKS_RENDER.getPrimitiveTopology(), BLOCKS_RENDER.getVertexFormatBinding(0));
                 }
@@ -173,13 +172,12 @@ public class RenderUtil {
                         pos.getX() + 1, pos.getY() + 1, pos.getZ() + 1, camera, color);
             } else if (distXZ < Config.Generic.LOD2_HORIZON.getIntegerValue()) {
                 addBillboardLOD(matrices.last().pose(),  pos.getX(), pos.getY(), pos.getZ(), camera, color, 1, 1);
-            } else if (Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue() < 0 || distXZ < Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue()) {
+            } else if (!Config.Generic.LOD2_HUD.getBooleanValue() && (Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue() < 0 || distXZ < Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue())) {
                 addBillboardLOD(matrices.last().pose(),  pos.getX(), camera.y, pos.getZ(), camera, color, 2, 5);
             }
         }
 
         matrices.popPose();
-        return;
     }
 
     private static Vec3 getLookDirection(Quaternionf orientation) {

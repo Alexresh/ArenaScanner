@@ -2,18 +2,21 @@ package ru.obabok.client.util;
 
 import fi.dy.masa.malilib.config.HudAlignment;
 import fi.dy.masa.malilib.render.RenderUtils;
+import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.CommonColors;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+import org.joml.Vector3fc;
+import org.joml.Vector4f;
 import ru.obabok.client.Config;
 import ru.obabok.client.Scan;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import static fi.dy.masa.malilib.render.GuiContext.fromGuiGraphics;
 import static ru.obabok.common.References.LOGGER;
@@ -35,7 +38,6 @@ public class HudRender {
     public static void render(GuiGraphicsExtractor guiGraphicsExtractor, DeltaTracker deltaTracker) {
         if (Config.Generic.MAIN_RENDER.getBooleanValue() && Config.Hud.HUD_ENABLE.getBooleanValue() && !Minecraft.getInstance().gui.hud.isHidden()) {
             lines.clear();
-
             if(!ChunkScheduler.getChunkQueue().isEmpty()){
                 String processedChunksText = "ProcessedChunks: %d".formatted(ChunkScheduler.getChunkQueue().size());
                 lines.add(processedChunksText);
@@ -48,6 +50,9 @@ public class HudRender {
                     BlockPos pos = Scan.selectedBlocks.iterator().next();
                     String selectedBlocksText = "Selected blocks: %d -> [%d, %d, %d]".formatted(Scan.selectedBlocks.size(), pos.getX(), pos.getY(), pos.getZ());
                     lines.add(selectedBlocksText);
+                    if(Config.Generic.LOD2_HUD.getBooleanValue()){
+                        renderClusteredDots(guiGraphicsExtractor);
+                    }
                 }
             }catch (Exception exception){
                 LOGGER.error(exception.getMessage());
@@ -68,6 +73,86 @@ public class HudRender {
 
             RenderUtils.renderText(fromGuiGraphics(guiGraphicsExtractor), Config.Hud.HUD_POS_X.getIntegerValue(), Config.Hud.HUD_POS_Y.getIntegerValue(), Config.Hud.HUD_SCALE.getFloatValue(), CommonColors.WHITE, CommonColors.BLACK, (HudAlignment)Config.Hud.HUD_ALIGNMENT.getOptionListValue(), false, false, lines);
         }
+    }
+
+    private static void renderClusteredDots(GuiGraphicsExtractor guiGraphicsExtractor){
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) return;
+
+        Camera camera = mc.gameRenderer.mainCamera();
+        double camX = camera.position().x;
+        double camY = camera.position().y;
+        double camZ = camera.position().z;
+
+        float fwdX = camera.forwardVector().x();
+        float fwdY = camera.forwardVector().y();
+        float fwdZ = camera.forwardVector().z();
+
+        int screenWidth = mc.getWindow().getGuiScaledWidth();
+        int screenHeight = mc.getWindow().getGuiScaledHeight();
+        float scaleX = screenWidth * 0.5f;
+        float scaleY = screenHeight * 0.5f;
+
+        // Группируем блоки по кластерам
+        Map<Long, BlockPos> clusters = new HashMap<>();
+
+        int minDistance = Config.Generic.LOD2_HORIZON.getIntegerValue();
+
+
+        for(int i = 0; i < RenderUtil.renderBlocksList.size(); i++){
+            BlockPos pos = RenderUtil.renderBlocksList.get(i);
+
+            double relX = pos.getX() + 0.5 - camX;
+            double relZ = pos.getZ() + 0.5 - camZ;
+
+            double distXZ = Math.sqrt(relX * relX + relZ * relZ);
+
+            if(distXZ > minDistance) {
+                long clusterKey = getClusterKey(pos.getX(), pos.getY(), pos.getZ(), CLUSTER_SIZE);
+                clusters.putIfAbsent(clusterKey, pos);
+            }
+        }
+
+        // Рендерим только центры кластеров
+        for (BlockPos clusterCenter : clusters.values()) {
+            double worldX = clusterCenter.getX() + 0.5;
+            double worldY = clusterCenter.getY() + 0.5;
+            double worldZ = clusterCenter.getZ() + 0.5;
+
+            double dirX = worldX - camX;
+            double dirY = worldY - camY;
+            double dirZ = worldZ - camZ;
+
+            if (dirX * fwdX + dirY * fwdY + dirZ * fwdZ <= 0) {
+                continue;
+            }
+
+            // Создаем Vec3 напрямую
+            Vec3 worldPos = new Vec3(worldX, worldY, worldZ);
+            Vec3 screenPos = mc.gameRenderer.projectPointToScreen(worldPos);
+
+            float screenX = (float)((screenPos.x + 1.0) * scaleX);
+            float screenY = (float)((1.0 - screenPos.y) * scaleY);
+
+            int ix = (int)screenX;
+            int iy = (int)screenY;
+
+            if (ix < -3 || ix > screenWidth + 3 || iy < -3 || iy > screenHeight + 3) {
+                continue;
+            }
+
+            guiGraphicsExtractor.fill(ix - 3, iy - 3, ix + 4, iy + 4, 0xFFFF0000);
+        }
+    }
+
+    private static final int CLUSTER_SIZE = 16;
+
+    private static long getClusterKey(int x, int y, int z, int clusterSize) {
+        int cx = Math.floorDiv(x, clusterSize);
+        int cy = Math.floorDiv(y, clusterSize);
+        int cz = Math.floorDiv(z, clusterSize);
+
+        return ((long)cx << 42) | ((long)cy << 21) | (cz & 0x1FFFFF);
     }
 
 
