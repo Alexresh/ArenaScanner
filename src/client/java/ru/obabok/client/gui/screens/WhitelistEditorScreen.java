@@ -11,6 +11,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.CommonColors;
 import net.minecraft.world.level.block.Blocks;
+import org.jspecify.annotations.NonNull;
 import ru.obabok.client.Scan;
 import ru.obabok.client.gui.widgets.ToggelableWidgedDropDownList;
 import ru.obabok.client.models.ScreenPlus;
@@ -123,24 +124,7 @@ public class WhitelistEditorScreen extends ScreenPlus {
         //presets
         addRenderableWidget(new StringWidget(width - 130, 10, 100, 20, Component.literal("Presets"), font));
 
-        List<Whitelist> list = new ArrayList<>();
-        Whitelist worldEater = new Whitelist(new ArrayList<>(){{
-            add(new WhitelistItem(null, null, ">9", "≠DESTROY"));
-        }}, "World eater");
-        Whitelist fluidsAndWaterlogged = new Whitelist(new ArrayList<>(){{
-            add(new WhitelistItem(Blocks.LAVA, null, null, null));
-            add(new WhitelistItem(Blocks.WATER, null, null, null));
-            add(new WhitelistItem(null, "true", null, null));
-        }}, "Fluids and Waterlogged");
-        Whitelist quarry = new Whitelist(new ArrayList<>(){{
-            add(new WhitelistItem(null, null, null, "=IMMOVABLE"));
-            add(new WhitelistItem(null, null, ">9", "≠DESTROY"));
-        }}, "Quarry");
-
-        list.add(worldEater);
-        list.add(fluidsAndWaterlogged);
-        list.add(quarry);
-        ToggelableWidgedDropDownList<Whitelist> presets = new ToggelableWidgedDropDownList<>(width - 180, 30, 150, 20, 100, 5, list);
+        ToggelableWidgedDropDownList<Whitelist> presets = getPresets();
         addWidget(presets);
         addRenderableWidget(Button.builder(Component.literal("Use preset"), btn -> {
             if(presets.getSelectedEntry() != null){
@@ -181,6 +165,28 @@ public class WhitelistEditorScreen extends ScreenPlus {
                 }).bounds(30, 260, 90, 20).build();
         addRenderableWidget(addToWhitelistBtn);
 
+    }
+
+    private @NonNull ToggelableWidgedDropDownList<Whitelist> getPresets() {
+        List<Whitelist> list = new ArrayList<>();
+        Whitelist worldEater = new Whitelist(new ArrayList<>(){{
+            add(new WhitelistItem(null, null, ">9", "≠DESTROY"));
+        }}, "World eater");
+        Whitelist fluidsAndWaterlogged = new Whitelist(new ArrayList<>(){{
+            add(new WhitelistItem(Blocks.LAVA, null, null, null));
+            add(new WhitelistItem(Blocks.WATER, null, null, null));
+            add(new WhitelistItem(null, "true", null, null));
+        }}, "Fluids and Waterlogged");
+        Whitelist quarry = new Whitelist(new ArrayList<>(){{
+            add(new WhitelistItem(null, null, null, "=IMMOVABLE"));
+            add(new WhitelistItem(null, null, ">9", "≠DESTROY"));
+            Blocks.GLAZED_TERRACOTTA.forEach(block -> add(new WhitelistItem(block, null, null, null)));
+        }}, "Quarry");
+
+        list.add(worldEater);
+        list.add(fluidsAndWaterlogged);
+        list.add(quarry);
+        return new ToggelableWidgedDropDownList<>(width - 180, 30, 150, 20, 100, 5, list);
     }
 
     private boolean validateCreatedWhitelistItem(){

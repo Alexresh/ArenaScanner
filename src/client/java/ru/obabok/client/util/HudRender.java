@@ -1,46 +1,85 @@
 package ru.obabok.client.util;
 
 import fi.dy.masa.malilib.config.HudAlignment;
-import fi.dy.masa.malilib.render.RenderUtils;
+import fi.dy.masa.malilib.util.EntityUtils;
+import fi.dy.masa.malilib.util.GuiUtils;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.CommonColors;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Matrix4f;
-import org.joml.Vector3fc;
-import org.joml.Vector4f;
 import ru.obabok.client.Config;
 import ru.obabok.client.Scan;
 
 import java.util.*;
 
-import static fi.dy.masa.malilib.render.GuiContext.fromGuiGraphics;
 import static ru.obabok.common.References.LOGGER;
 
 
 public class HudRender {
 
 
-    private static final List<String> lines = new ArrayList<>();
+    private static final List<Component> lines = new ArrayList<>();
     private static final long ETA_UPDATE_MS = 1000;
     private static long scanStartMs = 0;
     private static long lastTotal = 0;
     private static long lastProcessed = 0;
     private static long lastEtaUpdateMs = 0;
     private static String lastEtaText = "--";
-    private static final char[] SPINNER_FRAMES = new char[]{'\\', '|', '/', '-'};
+    private static final int CLUSTER_SIZE = 16;
+    private static final Map<Long, BlockPos> clusters = new HashMap<>();
+
+    private static final String[] hudAnimation = new String[]{
+            "⠀⠀",
+            "⠁⠀",
+            "⠉⠀",
+            "⠉⠁",
+            "⠉⠉",
+            "⠋⠉",
+            "⠛⠉",
+            "⠛⠋",
+            "⠛⠛",
+            "⠟⠛",
+            "⠿⠛",
+            "⠿⠟",
+            "⠿⠿",
+            "⡿⠿",
+            "⣿⠿",
+            "⣿⡿",
+            "⣿⣿",
+            "⣾⣿",
+            "⣶⣿",
+            "⣶⣾",
+            "⣶⣶",
+            "⣴⣶",
+            "⣤⣶",
+            "⣤⣴",
+            "⣤⣤",
+            "⣠⣤",
+            "⣀⣤",
+            "⣀⣠",
+            "⣀⣀",
+            "⢀⣀",
+            "⠀⣀",
+            "⠀⢀"
+    };
 
 
     public static void render(GuiGraphicsExtractor guiGraphicsExtractor, DeltaTracker deltaTracker) {
         if (Config.Generic.MAIN_RENDER.getBooleanValue() && Config.Hud.HUD_ENABLE.getBooleanValue() && !Minecraft.getInstance().gui.hud.isHidden()) {
             lines.clear();
             if(!ChunkScheduler.getChunkQueue().isEmpty()){
-                String processedChunksText = "ProcessedChunks: %d".formatted(ChunkScheduler.getChunkQueue().size());
-                lines.add(processedChunksText);
+                lines.add(Component.literal("ProcessedChunks: %d".formatted(ChunkScheduler.getChunkQueue().size())));
             }
 
             addScanStatus();
@@ -48,8 +87,7 @@ public class HudRender {
             try {
                 if(!Scan.selectedBlocks.isEmpty()){
                     BlockPos pos = Scan.selectedBlocks.iterator().next();
-                    String selectedBlocksText = "Selected blocks: %d -> [%d, %d, %d]".formatted(Scan.selectedBlocks.size(), pos.getX(), pos.getY(), pos.getZ());
-                    lines.add(selectedBlocksText);
+                    lines.add(Component.literal("Selected blocks: %d -> [%d, %d, %d]".formatted(Scan.selectedBlocks.size(), pos.getX(), pos.getY(), pos.getZ())));
                     if(Config.Generic.LOD2_HUD.getBooleanValue()){
                         renderClusteredDots(guiGraphicsExtractor);
                     }
@@ -62,8 +100,7 @@ public class HudRender {
                 try {
                     Iterator<ChunkPos> iterator = Scan.unloadedChunks.iterator();
                     if(iterator.hasNext()){
-                        String unloadedChunksText = "Unchecked chunks: %d -> %s".formatted(Scan.unloadedChunks.size(), iterator.next().toString());
-                        lines.add(unloadedChunksText);
+                        lines.add(Component.literal("Unchecked chunks: %d -> %s".formatted(Scan.unloadedChunks.size(), iterator.next().toString())));
                     }
                 }catch (Exception exception){
                     LOGGER.error(exception.getMessage());
@@ -71,49 +108,176 @@ public class HudRender {
 
             }
 
-            RenderUtils.renderText(fromGuiGraphics(guiGraphicsExtractor), Config.Hud.HUD_POS_X.getIntegerValue(), Config.Hud.HUD_POS_Y.getIntegerValue(), Config.Hud.HUD_SCALE.getFloatValue(), CommonColors.WHITE, CommonColors.BLACK, (HudAlignment)Config.Hud.HUD_ALIGNMENT.getOptionListValue(), false, false, lines);
+            renderText(guiGraphicsExtractor,
+                    Config.Hud.HUD_POS_X.getIntegerValue(),
+                    Config.Hud.HUD_POS_Y.getIntegerValue(),
+                    Config.Hud.HUD_SCALE.getFloatValue(),
+                    CommonColors.WHITE,
+                    (HudAlignment)Config.Hud.HUD_ALIGNMENT.getOptionListValue(),
+                    lines);
+
         }
     }
+
+    public static int renderText(GuiGraphicsExtractor ctx,
+                                 int xOff, int yOff, double scale,
+                                 int textColor, HudAlignment alignment,
+                                 List<Component> lines)
+    {
+        Font fontRenderer = Minecraft.getInstance().font;
+        final int scaledWidth = GuiUtils.getScaledWindowWidth();
+        final int lineHeight = fontRenderer.lineHeight + 2;
+        final int contentHeight = lines.size() * lineHeight - 2;
+        final int bgMargin = 2;
+
+        if (scale < 0.0125)
+        {
+            return 0;
+        }
+
+        boolean scaled = scale != 1.0;
+
+        if (scaled)
+        {
+            ctx.pose().pushMatrix();
+            ctx.pose().scale((float) scale, (float) scale);
+        }
+
+        double posX = xOff + bgMargin;
+        double posY = yOff + bgMargin;
+
+        posY = getHudPosY((int) posY, yOff, contentHeight, scale, alignment);
+
+
+        posY += getHudOffsetForPotions(alignment, scale, Minecraft.getInstance().player);
+
+
+        for (Component line : lines)
+        {
+            final int width = fontRenderer.width(line);
+
+            switch (alignment)
+            {
+                case TOP_RIGHT:
+                case BOTTOM_RIGHT:
+                    posX = (scaledWidth / scale) - width - xOff - bgMargin;
+                    break;
+                case CENTER:
+                    posX = (scaledWidth / scale / 2) - ((double) width / 2) - xOff;
+                    break;
+                default:
+            }
+
+            final int x = (int) posX;
+            final int y = (int) posY;
+            posY += lineHeight;
+
+            ctx.text(fontRenderer, line, x, y, textColor, false);
+        }
+
+        if (scaled)
+        {
+            ctx.pose().popMatrix();
+        }
+
+        return contentHeight + bgMargin * 2;
+    }
+
+    public static int getHudOffsetForPotions(HudAlignment alignment, double scale, Player player)
+    {
+        if (alignment == HudAlignment.TOP_RIGHT)
+        {
+            if (scale == 0d)
+            {
+                return 0;
+            }
+
+            Collection<MobEffectInstance> effects = player.getActiveEffects();
+            boolean hasTurtleHelmet = EntityUtils.hasTurtleHelmetEquipped(player);
+
+            if (effects.isEmpty() == false)
+            {
+                int y1 = 0;
+                int y2 = 0;
+
+                for (MobEffectInstance effectInstance : effects)
+                {
+                    MobEffect effect = effectInstance.getEffect().value();
+
+                    if (effectInstance.isVisible() && effectInstance.showIcon())
+                    {
+                        if (effect.isBeneficial())
+                        {
+                            y1 = 26;
+                        }
+                        else
+                        {
+                            y2 = 52;
+                            break;
+                        }
+                    }
+                }
+
+                if (hasTurtleHelmet && y1 == 0)
+                {
+                    y1 = 26;
+                }
+
+                return (int) (Math.max(y1, y2) / scale);
+            }
+            else if (hasTurtleHelmet)
+            {
+                return (int) ((int) 26 / scale);
+            }
+        }
+
+        return 0;
+    }
+
+    public static int getHudPosY(int yOrig, int yOffset, int contentHeight, double scale, HudAlignment alignment)
+    {
+        int scaledHeight = GuiUtils.getScaledWindowHeight();
+        int posY = yOrig;
+
+        switch (alignment)
+        {
+            case BOTTOM_LEFT:
+            case BOTTOM_RIGHT:
+                posY = (int) ((scaledHeight / scale) - contentHeight - yOffset);
+                break;
+            case CENTER:
+                posY = (int) ((scaledHeight / scale / 2.0d) - (contentHeight / 2.0d) + yOffset);
+                break;
+            default:
+        }
+
+        return posY;
+    }
+
 
     private static void renderClusteredDots(GuiGraphicsExtractor guiGraphicsExtractor){
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) return;
+        clusters.clear();
 
         Camera camera = mc.gameRenderer.mainCamera();
         double camX = camera.position().x;
         double camY = camera.position().y;
         double camZ = camera.position().z;
 
-        float fwdX = camera.forwardVector().x();
-        float fwdY = camera.forwardVector().y();
-        float fwdZ = camera.forwardVector().z();
-
         int screenWidth = mc.getWindow().getGuiScaledWidth();
         int screenHeight = mc.getWindow().getGuiScaledHeight();
-        float scaleX = screenWidth * 0.5f;
-        float scaleY = screenHeight * 0.5f;
-
-        // Группируем блоки по кластерам
-        Map<Long, BlockPos> clusters = new HashMap<>();
-
-        int minDistance = Config.Generic.LOD2_HORIZON.getIntegerValue();
-
 
         for(int i = 0; i < RenderUtil.renderBlocksList.size(); i++){
             BlockPos pos = RenderUtil.renderBlocksList.get(i);
+            double distXZ = Math.sqrt((pos.getX() + 0.5 - camX) * (pos.getX() + 0.5 - camX) + (pos.getZ() + 0.5 - camZ) * (pos.getZ() + 0.5 - camZ));
 
-            double relX = pos.getX() + 0.5 - camX;
-            double relZ = pos.getZ() + 0.5 - camZ;
-
-            double distXZ = Math.sqrt(relX * relX + relZ * relZ);
-
-            if(distXZ > minDistance) {
-                long clusterKey = getClusterKey(pos.getX(), pos.getY(), pos.getZ(), CLUSTER_SIZE);
+            if(distXZ > Config.Generic.LOD2_HORIZON.getIntegerValue()) {
+                long clusterKey = getClusterKey(pos.getX(), pos.getY(), pos.getZ());
                 clusters.putIfAbsent(clusterKey, pos);
             }
         }
 
-        // Рендерим только центры кластеров
         for (BlockPos clusterCenter : clusters.values()) {
             double worldX = clusterCenter.getX() + 0.5;
             double worldY = clusterCenter.getY() + 0.5;
@@ -123,42 +287,38 @@ public class HudRender {
             double dirY = worldY - camY;
             double dirZ = worldZ - camZ;
 
-            if (dirX * fwdX + dirY * fwdY + dirZ * fwdZ <= 0) {
+            if (dirX * camera.forwardVector().x() + dirY * camera.forwardVector().y() + dirZ * camera.forwardVector().z() <= 0) {
                 continue;
             }
 
-            // Создаем Vec3 напрямую
-            Vec3 worldPos = new Vec3(worldX, worldY, worldZ);
-            Vec3 screenPos = mc.gameRenderer.projectPointToScreen(worldPos);
+            Vec3 screenPos = mc.gameRenderer.projectPointToScreen(new Vec3(worldX, worldY, worldZ));
 
-            float screenX = (float)((screenPos.x + 1.0) * scaleX);
-            float screenY = (float)((1.0 - screenPos.y) * scaleY);
+            float screenX = (float)((screenPos.x + 1.0) * screenWidth * 0.5f);
+            float screenY = (float)((1.0 - screenPos.y) * screenHeight * 0.5f);
 
-            int ix = (int)screenX;
-            int iy = (int)screenY;
 
-            if (ix < -3 || ix > screenWidth + 3 || iy < -3 || iy > screenHeight + 3) {
+            if (screenX < -3 || screenX > screenWidth + 3 || screenY < -3 || screenY > screenHeight + 3) {
                 continue;
             }
 
-            guiGraphicsExtractor.fill(ix - 3, iy - 3, ix + 4, iy + 4, 0xFFFF0000);
+            guiGraphicsExtractor.fill((int)screenX - 3, (int)screenY - 3, (int)screenX + 4, (int)screenY + 4, 0xFFFF0000);
         }
     }
 
-    private static final int CLUSTER_SIZE = 16;
 
-    private static long getClusterKey(int x, int y, int z, int clusterSize) {
-        int cx = Math.floorDiv(x, clusterSize);
-        int cy = Math.floorDiv(y, clusterSize);
-        int cz = Math.floorDiv(z, clusterSize);
+
+    private static long getClusterKey(int x, int y, int z) {
+        int cx = Math.floorDiv(x, HudRender.CLUSTER_SIZE);
+        int cy = Math.floorDiv(y, HudRender.CLUSTER_SIZE);
+        int cz = Math.floorDiv(z, HudRender.CLUSTER_SIZE);
 
         return ((long)cx << 42) | ((long)cy << 21) | (cz & 0x1FFFFF);
     }
 
+    private static MutableComponent getSpinnerFrame() {
 
-    private static String getSpinnerFrame() {
-        int index = (int) ((System.currentTimeMillis() / 100) % SPINNER_FRAMES.length);
-        return String.valueOf(SPINNER_FRAMES[index]);
+        int indexA = (int) ((System.currentTimeMillis() / 50) % hudAnimation.length);
+        return Component.literal( hudAnimation[indexA]).withStyle(ChatFormatting.GOLD);
     }
 
     private static void addScanStatus() {
@@ -168,7 +328,7 @@ public class HudRender {
         }
         long total = Scan.getAllChunksCounter();
         if (total <= 0) {
-            lines.add("Scan: waiting for range");
+            lines.add(Component.literal("Scan: waiting for range"));
             resetScanTiming();
             return;
         }
@@ -180,7 +340,7 @@ public class HudRender {
         String eta = Scan.isRemoteProcessing() ? formatEta(remaining, processed) : "-";
         String mode = Scan.isRemoteProcessing() ? "server" : "client";
 
-        lines.add(getSpinnerFrame() + " Scan (" + mode + "): " + processed + "/" + total + " (" + String.format("%.1f", percent) + "%) ETA " + eta);
+        lines.add(getSpinnerFrame().append(Component.literal(" Scan (" + mode + "): " + processed + "/" + total + " (" + String.format("%.1f", percent) + "%) ETA " + eta).withStyle(ChatFormatting.WHITE)));
     }
 
     private static void updateScanTiming(long processed, long total) {
