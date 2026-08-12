@@ -20,6 +20,7 @@ import net.minecraft.util.CommonColors;
 import org.lwjgl.glfw.GLFW;
 import ru.obabok.client.Scan;
 import ru.obabok.client.gui.widgets.ToggelableWidgedDropDownList;
+import ru.obabok.common.model.BlockArea;
 import ru.obabok.client.models.ScreenPlus;
 import ru.obabok.client.network.ClientNetwork;
 
@@ -31,50 +32,90 @@ import java.util.Optional;
 public class ScanTaskScreen extends ScreenPlus {
     private final Screen parent;
     private ToggelableWidgedDropDownList<String> whitelistSelectorList;
-    private final BlockBox initialBox;
+    private final BlockArea initialBox;
     private EditBox minX, minY, minZ;
     private EditBox maxX, maxY, maxZ;
     private final List<CoordButton> coordButtons = new ArrayList<>();
     private EditBox shareNameField;
     private Button startButton;
 
+    public static int selectedBoxIndex = 0;
+    private StringWidget regionLabel;
+
     protected ScanTaskScreen(Screen parent) {
         super(Component.literal("Scan task screen"));
         this.parent = parent;
         if(Minecraft.getInstance().player == null) Minecraft.getInstance().setScreenAndShow(parent);
-        this.initialBox = Scan.getRange() == null ? new BlockBox(Minecraft.getInstance().player.getOnPos(), Minecraft.getInstance().player.getOnPos()) : Scan.getRange();
-        if(Scan.getRange() != initialBox){
-            Scan.setRange(initialBox);
+        BlockArea existing = Scan.getArea();
+        if (existing == null || existing.getBoxes().isEmpty()) {
+            this.initialBox = new BlockArea(new BlockBox(
+                    Minecraft.getInstance().player.getOnPos(),
+                    Minecraft.getInstance().player.getOnPos()
+            ));
+            Scan.setArea(initialBox);
+        } else {
+            this.initialBox = existing;
         }
+        selectedBoxIndex = 0;
     }
 
-    public ScanTaskScreen(Screen parent, BlockBox range){
+    public ScanTaskScreen(Screen parent, BlockArea range){
         super(Component.literal("Scan task screen"));
         this.parent = parent;
         this.initialBox = range;
-        Scan.setRange(initialBox);
+        Scan.setArea(initialBox);
     }
 
     @Override
     public void init() {
         super.init();
 
-        //create whitelists selector
-        List<String> whitelistFiles = WhitelistSelectorScreen.getWhitelistFilenames();
-        ArrayList<String> list = new ArrayList<>(whitelistFiles);
-        //list.add("WorldEater");
-
-        whitelistSelectorList = new ToggelableWidgedDropDownList<>(20,200,160,18,200,10, list);
-        whitelistSelectorList.setZLevel(100);
-        whitelistSelectorList.active = !Scan.isProcessing();
-        addWidget(whitelistSelectorList);
-        if(Scan.getCurrentFilename() != null){
-            whitelistSelectorList.setSelectedEntry(Scan.getCurrentFilename());
-        }
-
         int x = 20;
-        int y = 20;
+        int y = 60;
         int rowHeight = 30;
+
+        int listY = 20;
+        //regions
+        addRenderableWidget(Button.builder(Component.literal("<"), btn -> {
+            if (selectedBoxIndex > 0) {
+                selectedBoxIndex--;
+                refreshFieldsFromSelection();
+            }
+        }).bounds(20, listY, 20, 20).build());
+
+        regionLabel = new StringWidget(45, listY, 80, 20, Component.empty(), font);
+        addRenderableWidget(regionLabel);
+
+        addRenderableWidget(Button.builder(Component.literal(">"), btn -> {
+            BlockArea area = Scan.getArea();
+            if (area != null && selectedBoxIndex < area.getBoxes().size() - 1) {
+                selectedBoxIndex++;
+                refreshFieldsFromSelection();
+            }
+        }).bounds(130, listY, 20, 20).build());
+
+        Button addBtn = Button.builder(Component.literal("+ Add"), btn -> {
+            BlockArea area = Scan.getArea();
+            if (area != null) {
+                BlockPos playerPos = minecraft.player != null ? minecraft.player.getOnPos() : BlockPos.ZERO;
+                area.add(new BlockBox(playerPos, playerPos));
+                selectedBoxIndex = area.getBoxes().size() - 1;
+                refreshFieldsFromSelection();
+            }
+        }).bounds(160, listY, 50, 20).build();
+        addBtn.active = !Scan.isProcessing();
+        addRenderableWidget(addBtn);
+
+        Button delBtn = Button.builder(Component.literal("- Del"), btn -> {
+            BlockArea area = Scan.getArea();
+            if (area != null && area.getBoxes().size() > 1) {
+                area.remove(selectedBoxIndex);
+                selectedBoxIndex = Math.min(selectedBoxIndex, area.getBoxes().size() - 1);
+                refreshFieldsFromSelection();
+            }
+        }).bounds(215, listY, 50, 20).build();
+        delBtn.active = !Scan.isProcessing();
+        addRenderableWidget(delBtn);
 
         //Corner1
         addRenderableWidget(new StringWidget(x, y, 100, 20, Component.literal("Corner 1"), font));
@@ -83,19 +124,19 @@ public class ScanTaskScreen extends ScreenPlus {
         //X
         y+=rowHeight;
         addRenderableWidget(new StringWidget(x - 15, y, 15, 20, Component.literal("X:"), font));
-        minX = createField(x, y, initialBox.min().getX());
+        minX = createField(x, y, initialBox.getArea(0).min().getX());
         Button btnMinX = createNudgeButton(x + 60, y);
         coordButtons.add(new CoordButton(btnMinX, minX));
         //Y
         y+=rowHeight;
         addRenderableWidget(new StringWidget(x - 15, y, 15, 20, Component.literal("Y:"), font));
-        minY = createField(x, y, initialBox.min().getY());
+        minY = createField(x, y, initialBox.getArea(0).min().getY());
         Button btnMinY = createNudgeButton(x + 60, y);
         coordButtons.add(new CoordButton(btnMinY, minY));
         //Z
         y+=rowHeight;
         addRenderableWidget(new StringWidget(x - 15, y, 15, 20, Component.literal("Z:"), font));
-        minZ = createField(x, y, initialBox.min().getZ());
+        minZ = createField(x, y, initialBox.getArea(0).min().getZ());
         Button btnMinZ = createNudgeButton(x + 60, y);
         coordButtons.add(new CoordButton(btnMinZ, minZ));
 
@@ -104,7 +145,7 @@ public class ScanTaskScreen extends ScreenPlus {
         addRenderableWidget(moveToPlayer1);
 
         x += 100;
-        y = 20;
+        y = 60;
 
         //Corner2
         addRenderableWidget(new StringWidget(x, y, 100, 20, Component.literal("Corner 2"), font));
@@ -112,32 +153,49 @@ public class ScanTaskScreen extends ScreenPlus {
         //maxX
         y+=rowHeight;
         addRenderableWidget(new StringWidget(x - 15, y, 15, 20, Component.literal("X:"), font));
-        maxX = createField(x, y, initialBox.max().getX());
+        maxX = createField(x, y, initialBox.getArea(0).max().getX());
         Button btnMaxX = createNudgeButton(x + 60, y);
         coordButtons.add(new CoordButton(btnMaxX, maxX));
 
         //maxY
         y+=rowHeight;
         addRenderableWidget(new StringWidget(x - 15, y, 15, 20, Component.literal("Y:"), font));
-        maxY = createField(x, y, initialBox.max().getY());
+        maxY = createField(x, y, initialBox.getArea(0).max().getY());
         Button btnMaxY = createNudgeButton(x + 60, y);
         coordButtons.add(new CoordButton(btnMaxY, maxY));
 
         //maxZ
         y+=rowHeight;
         addRenderableWidget(new StringWidget(x - 15, y, 15, 20, Component.literal("Z:"), font));
-        maxZ = createField(x, y, initialBox.max().getZ());
+        maxZ = createField(x, y, initialBox.getArea(0).max().getZ());
         Button btnMaxZ = createNudgeButton(x + 60, y);
         coordButtons.add(new CoordButton(btnMaxZ, maxZ));
 
-        Button moveToPlayer2 = Button.builder(Component.literal("Move to player"), btn -> moveToPlayer(false)).bounds(x - 15, y + 30, 90, 20).build();
+        y+=rowHeight;
+        Button moveToPlayer2 = Button.builder(Component.literal("Move to player"), btn -> moveToPlayer(false)).bounds(x - 15, y, 90, 20).build();
         moveToPlayer2.active = !Scan.isProcessing();
         addRenderableWidget(moveToPlayer2);
 
         //Whitelist text
-        addRenderableWidget(new StringWidget(20, 180, 40, 20, Component.literal("Whitelist"), font));
+        y+=rowHeight;
+        addRenderableWidget(new StringWidget(20, y, 40, 20, Component.literal("Whitelist"), font));
 
-        int shareY = Math.min(230, height - 90);
+        y+=rowHeight;
+        //create whitelists selector
+        List<String> whitelistFiles = WhitelistSelectorScreen.getWhitelistFilenames();
+        ArrayList<String> list = new ArrayList<>(whitelistFiles);
+
+        whitelistSelectorList = new ToggelableWidgedDropDownList<>(20,y,160,18,200,10, list);
+        whitelistSelectorList.setZLevel(100);
+        whitelistSelectorList.active = !Scan.isProcessing();
+        addWidget(whitelistSelectorList);
+        if(Scan.getCurrentFilename() != null){
+            whitelistSelectorList.setSelectedEntry(Scan.getCurrentFilename());
+        }
+
+
+        y+=rowHeight;
+        int shareY = Math.min(y, height - 90);
         addRenderableWidget(new StringWidget(20, shareY, 80, 20, Component.literal("Share name"), font));
         shareNameField = new EditBox(font, 20, shareY + 15, 160, 18, Component.empty());
         shareNameField.active = !Scan.isProcessing();
@@ -152,24 +210,21 @@ public class ScanTaskScreen extends ScreenPlus {
                 String whitelistName = whitelistSelectorList.getSelectedEntry();
                 String shareName = shareNameField.getValue().trim();
                 if(shareName.isEmpty()){
-                    Scan.executeAsync(minecraft.level, Scan.getRange(), whitelistSelectorList.getSelectedEntry());
+                    Scan.executeAsync(minecraft.level, Scan.getArea(), whitelistSelectorList.getSelectedEntry());
                 }else{
-                    if(!ClientNetwork.requestScan(Scan.getRange(), whitelistName, shareName)){
-                        Scan.executeAsync(minecraft.level, Scan.getRange(), whitelistSelectorList.getSelectedEntry());
+                    if(!ClientNetwork.requestScan(Scan.getArea(), whitelistName, shareName)){
+                        Scan.executeAsync(minecraft.level, Scan.getArea(), whitelistSelectorList.getSelectedEntry());
                     }
                 }
 
                 this.onClose();
             }catch (Exception ignored){}
         }).bounds( 90, height - 30, 80, 20).build();
-        startButton.active = whitelistSelectorList.getSelectedEntry() != null && !whitelistSelectorList.getSelectedEntry().isEmpty() && Scan.getRange() != null && !Scan.isProcessing();
+        startButton.active = whitelistSelectorList.getSelectedEntry() != null && !whitelistSelectorList.getSelectedEntry().isEmpty() && Scan.getArea() != null && !Scan.isProcessing();
         addRenderableWidget(startButton);
 
-        //if(ScanCommand.getProcessing())
-
-
         Button stopScanBtn = Button.builder(Component.literal("Stop scan"), btn ->{
-            BlockBox box = Scan.getRange();
+            BlockArea box = Scan.getArea();
             if (Scan.isRemoteProcessing()) {
                 ClientNetwork.stopScan();
             }
@@ -194,6 +249,8 @@ public class ScanTaskScreen extends ScreenPlus {
         }).bounds(370, height - 30, 90, 20).build();
         loadStateBtn.active = !Scan.isProcessing();
         addRenderableWidget(loadStateBtn);
+
+        refreshFieldsFromSelection();
     }
 
     @Override
@@ -215,7 +272,21 @@ public class ScanTaskScreen extends ScreenPlus {
         return false;
     }
 
+    private void refreshFieldsFromSelection() {
+        BlockArea area = Scan.getArea();
+        if (area == null || area.getBoxes().isEmpty()) return;
+        selectedBoxIndex = Math.clamp(selectedBoxIndex, 0, area.getBoxes().size() - 1);
 
+        BlockBox box = area.getBoxes().get(selectedBoxIndex);
+
+        minX.setValue(String.valueOf(box.min().getX()));
+        minY.setValue(String.valueOf(box.min().getY()));
+        minZ.setValue(String.valueOf(box.min().getZ()));
+        maxX.setValue(String.valueOf(box.max().getX()));
+        maxY.setValue(String.valueOf(box.max().getY()));
+        maxZ.setValue(String.valueOf(box.max().getZ()));
+        regionLabel.setMessage(Component.literal("Region " + (selectedBoxIndex + 1) + "/" + area.getBoxes().size()));
+    }
     @Override
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
         int y = height - 110;
@@ -230,9 +301,9 @@ public class ScanTaskScreen extends ScreenPlus {
             context.text(font, Component.literal("Scan is stopped"), x, y, CommonColors.WHITE);
         }
 
-        startButton.active = whitelistSelectorList.getSelectedEntry() != null && !whitelistSelectorList.getSelectedEntry().isEmpty() && Scan.getRange() != null && !Scan.isProcessing();
-        context.outline(15,15, 110, 150, CommonColors.LIGHT_GRAY);
-        context.outline(135,15, 110, 150, CommonColors.LIGHT_GRAY);
+        startButton.active = whitelistSelectorList.getSelectedEntry() != null && !whitelistSelectorList.getSelectedEntry().isEmpty() && Scan.getArea() != null && !Scan.isProcessing();
+        context.outline(15,55, 110, 150, CommonColors.LIGHT_GRAY);
+        context.outline(135,55, 110, 150, CommonColors.LIGHT_GRAY);
         for (CoordButton entry : coordButtons) {
             if (entry.button.isMouseOver(mouseX, mouseY)) {
                 List<Component> tooltip = List.of(
@@ -354,6 +425,9 @@ public class ScanTaskScreen extends ScreenPlus {
     }
 
     private void updateRange() {
+        BlockArea area = Scan.getArea();
+        if (area == null || area.getBoxes().isEmpty()) return;
+
         int minXv = parseInt(minX.getValue());
         int minYv = parseInt(minY.getValue());
         int minZv = parseInt(minZ.getValue());
@@ -361,14 +435,12 @@ public class ScanTaskScreen extends ScreenPlus {
         int maxYv = parseInt(maxY.getValue());
         int maxZv = parseInt(maxZ.getValue());
 
-        int fMinX = Math.min(minXv, maxXv);
-        int fMaxX = Math.max(minXv, maxXv);
-        int fMinY = Math.min(minYv, maxYv);
-        int fMaxY = Math.max(minYv, maxYv);
-        int fMinZ = Math.min(minZv, maxZv);
-        int fMaxZ = Math.max(minZv, maxZv);
+        BlockBox updated = new BlockBox(
+                new BlockPos(Math.min(minXv, maxXv), Math.min(minYv, maxYv), Math.min(minZv, maxZv)),
+                new BlockPos(Math.max(minXv, maxXv), Math.max(minYv, maxYv), Math.max(minZv, maxZv))
+        );
 
-        Scan.setRange(new BlockBox(new BlockPos(fMinX, fMinY, fMinZ), new BlockPos(fMaxX, fMaxY, fMaxZ)));
+        area.setBox(selectedBoxIndex, updated);
     }
 
     private int parseInt(String s) {

@@ -328,7 +328,7 @@ public class HudRender {
         }
         long total = Scan.getAllChunksCounter();
         if (total <= 0) {
-            lines.add(Component.literal("Scan: waiting for range"));
+            lines.add(Component.literal("Scan: waiting for area"));
             resetScanTiming();
             return;
         }

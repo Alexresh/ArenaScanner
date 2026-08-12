@@ -1,11 +1,11 @@
 package ru.obabok.server;
 
-import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import ru.obabok.common.model.BlockArea;
 import ru.obabok.common.model.JobInfo;
 import ru.obabok.common.model.Whitelist;
 
@@ -20,7 +20,7 @@ public class ServerScanManager {
         return INSTANCE;
     }
 
-    public void startJob(ServerPlayer player, long jobId, BlockBox range, String whitelistName, Whitelist whitelist, String sharedName) {
+    public void startJob(ServerPlayer player, long jobId, BlockArea range, String whitelistName, Whitelist whitelist, String sharedName) {
         for (int i = 0; i < jobs.size(); i++) {
             if(player.getUUID().equals(jobs.get(i).getOwner().getUUID()) && Objects.equals(jobs.get(i).getSharedName(), sharedName)){
                 jobs.get(i).stop("Restarted", false);

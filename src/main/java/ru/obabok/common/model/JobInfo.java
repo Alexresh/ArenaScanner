@@ -3,7 +3,10 @@ package ru.obabok.common.model;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import ru.obabok.server.network.ScanPacketUtils;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public record JobInfo(
@@ -12,7 +15,7 @@ public record JobInfo(
         String owner,
         UUID ownerUUID,
         String dimension,
-        BlockBox range,
+        BlockArea area,
         String whitelistName,
         long totalChunks,
         long processedChunks,
@@ -25,7 +28,7 @@ public record JobInfo(
         String owner = buf.readUtf();
         UUID ownerUUID = buf.readUUID();
         String dimension = buf.readUtf();
-        BlockBox range = readBlockBox(buf);
+        BlockArea range = ScanPacketUtils.readBlockArea(buf);
         String whitelistName = buf.readUtf();
         long totalChunks = buf.readLong();
         long processedChunks = buf.readLong();
@@ -40,7 +43,7 @@ public record JobInfo(
         buf.writeUtf(owner == null ? "" : owner);
         buf.writeUUID(ownerUUID);
         buf.writeUtf(dimension == null ? "" : dimension);
-        writeBlockBox(buf, range);
+        ScanPacketUtils.writeBlockArea(buf, area);
         buf.writeUtf(whitelistName == null ? "" : whitelistName);
         buf.writeLong(totalChunks);
         buf.writeLong(processedChunks);
@@ -48,22 +51,23 @@ public record JobInfo(
         buf.writeBoolean(completedScan);
     }
 
-    private static void writeBlockBox(RegistryFriendlyByteBuf buf, BlockBox box) {
-        buf.writeInt(box.min().getX());
-        buf.writeInt(box.min().getY());
-        buf.writeInt(box.min().getZ());
-        buf.writeInt(box.max().getX());
-        buf.writeInt(box.max().getY());
-        buf.writeInt(box.max().getZ());
-    }
+//    private static void writeBlockBox(RegistryFriendlyByteBuf buf, BlockArea box) {
+//        buf.writeInt(box.min().getX());
+//        buf.writeInt(box.min().getY());
+//        buf.writeInt(box.min().getZ());
+//        buf.writeInt(box.max().getX());
+//        buf.writeInt(box.max().getY());
+//        buf.writeInt(box.max().getZ());
+//    }
 
-    private static BlockBox readBlockBox(RegistryFriendlyByteBuf buf) {
-        int minX = buf.readInt();
-        int minY = buf.readInt();
-        int minZ = buf.readInt();
-        int maxX = buf.readInt();
-        int maxY = buf.readInt();
-        int maxZ = buf.readInt();
-        return new BlockBox(new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ));
-    }
+
+//    private static BlockArea readBlockBox(RegistryFriendlyByteBuf buf) {
+//        int minX = buf.readInt();
+//        int minY = buf.readInt();
+//        int minZ = buf.readInt();
+//        int maxX = buf.readInt();
+//        int maxY = buf.readInt();
+//        int maxZ = buf.readInt();
+//        return new BlockArea(new BlockPos(minX, minY, minZ), new BlockPos(maxX, maxY, maxZ));
+//    }
 }

@@ -14,7 +14,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.DynamicUniforms;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.commands.arguments.EntityAnchorArgument;
-import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.CommonColors;
@@ -23,6 +22,8 @@ import net.minecraft.world.phys.Vec3;
 import org.joml.*;
 import ru.obabok.client.Config;
 import ru.obabok.client.Scan;
+import ru.obabok.client.gui.screens.ScanTaskScreen;
+import ru.obabok.common.model.BlockArea;
 import ru.obabok.common.References;
 
 import java.lang.Math;
@@ -53,9 +54,15 @@ public class RenderUtil {
     public static void render(LevelRenderContext context) {
         if(!Config.Generic.MAIN_RENDER.getBooleanValue()) return;
         if(Minecraft.getInstance().gui.hud.isHidden()) return;
-        BlockBox scanRange = Scan.getRange();
+        BlockArea scanRange = Scan.getArea();
         if(scanRange != null){
-            renderAreaOutline(scanRange.min(), scanRange.max(), 2, Color4f.fromColor(CommonColors.RED), Color4f.fromColor(CommonColors.GREEN),Color4f.fromColor(CommonColors.BLUE));
+            for (int i = 0; i < scanRange.size(); i++) {
+                if(Minecraft.getInstance().gui.screen() instanceof ScanTaskScreen && i != ScanTaskScreen.selectedBoxIndex){
+                    renderAreaOutline(scanRange.getArea(i).min(), scanRange.getArea(i).max(), 1, Color4f.fromColor(CommonColors.GRAY), Color4f.fromColor(CommonColors.GRAY),Color4f.fromColor(CommonColors.GRAY));
+                }else{
+                    renderAreaOutline(scanRange.getArea(i).min(), scanRange.getArea(i).max(), 1, Color4f.fromColor(CommonColors.RED), Color4f.fromColor(CommonColors.GREEN),Color4f.fromColor(CommonColors.BLUE));
+                }
+            }
 //            if(Config.Generic.AREA_EDGE_RENDER.getBooleanValue()){
 //                renderAreaSides(scanRange.min(), scanRange.max(), Config.Generic.AREA_EDGE_COLOR.getColor(), false);
 //            }
@@ -129,20 +136,21 @@ public class RenderUtil {
 
         Vec3 lookDirection = getLookDirection(orientation);
 
-        //matrices.pushPose();
-
         int maxDistance = Config.Generic.SELECTED_BLOCKS_MAX_DISTANCE.getIntegerValue();
         boolean checkDistance = maxDistance != -1;
         Color4f color = Color4f.fromColor(Config.Generic.SELECTED_BLOCKS_COLOR.getIntegerValue());
 
         if(Config.Generic.AREA_EDGE_RENDER.getBooleanValue()){
-            BlockBox area = Scan.getRange();
-            if((camera.x <= area.min().getX() || camera.x >= area.max().getX() + 1) ||
-                    (camera.y <= area.min().getY() || camera.y >= area.max().getY() + 1) ||
-                    (camera.z <= area.min().getZ() || camera.z >= area.max().getZ() + 1)
-            ){
-                newRenderFilledBox(matrices.last().pose(), area.min().getX(), area.min().getY(), area.min().getZ(), area.max().getX() + 1, area.max().getY() + 1, area.max().getZ() + 1, camera, Config.Generic.AREA_EDGE_COLOR.getColor());
+            BlockArea area = Scan.getArea();
+            for (int i = 0; i < area.size(); i++) {
+                if((camera.x <= area.getArea(i).min().getX() || camera.x >= area.getArea(i).max().getX() + 1) ||
+                        (camera.y <= area.getArea(i).min().getY() || camera.y >= area.getArea(i).max().getY() + 1) ||
+                        (camera.z <= area.getArea(i).min().getZ() || camera.z >= area.getArea(i).max().getZ() + 1)
+                ){
+                    newRenderFilledBox(matrices.last().pose(), area.getArea(i).min().getX(), area.getArea(i).min().getY(), area.getArea(i).min().getZ(), area.getArea(i).max().getX() + 1, area.getArea(i).max().getY() + 1, area.getArea(i).max().getZ() + 1, camera, Config.Generic.AREA_EDGE_COLOR.getColor());
+                }
             }
+
         }
 
 
@@ -178,7 +186,6 @@ public class RenderUtil {
             }
         }
 
-        //matrices.popPose();
     }
 
     private static Vec3 getLookDirection(Quaternionf orientation) {

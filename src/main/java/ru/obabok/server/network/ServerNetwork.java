@@ -1,13 +1,16 @@
 package ru.obabok.server.network;
 
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockBox;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.permissions.Permissions;
+import net.minecraft.world.level.ChunkPos;
 import ru.obabok.common.NetworkPackets;
 import ru.obabok.common.References;
+import ru.obabok.common.model.BlockArea;
 import ru.obabok.common.model.JobInfo;
 import ru.obabok.common.model.Whitelist;
 import ru.obabok.common.network.c2s.*;
@@ -88,10 +91,10 @@ public class ServerNetwork {
             ServerPlayNetworking.send(player, new ScanRejectedPayload(payload.jobId(), "Whitelist not found"));
             return;
         }
-        BlockBox range = payload.range();
+        BlockArea range = payload.range();
         long totalChunks = getTotalChunks(range);
         if (totalChunks <= 0) {
-            ServerPlayNetworking.send(player, new ScanRejectedPayload(payload.jobId(), "Invalid range"));
+            ServerPlayNetworking.send(player, new ScanRejectedPayload(payload.jobId(), "Invalid area"));
             return;
         }
 
@@ -103,13 +106,22 @@ public class ServerNetwork {
         ServerPlayNetworking.send(player, new ScanAcceptedPayload(payload.jobId(), totalChunks));
     }
 
-    private static long getTotalChunks(BlockBox range) {
-        int startChunkX = range.min().getX() >> 4;
-        int startChunkZ = range.min().getZ() >> 4;
-        int endChunkX = range.max().getX() >> 4;
-        int endChunkZ = range.max().getZ() >> 4;
-        long xCount = (long) endChunkX - startChunkX + 1;
-        long zCount = (long) endChunkZ - startChunkZ + 1;
-        return xCount * zCount;
+    private static long getTotalChunks(BlockArea area) {
+        if (area == null || area.getBoxes().isEmpty()) return 0;
+
+        LongOpenHashSet uniqueChunks = new LongOpenHashSet();
+        for (int i = 0; i < area.size(); i++) {
+            int startX = area.getArea(i).min().getX() >> 4;
+            int startZ = area.getArea(i).min().getZ() >> 4;
+            int endX = area.getArea(i).max().getX() >> 4;
+            int endZ = area.getArea(i).max().getZ() >> 4;
+
+            for (int cx = startX; cx <= endX; cx++) {
+                for (int cz = startZ; cz <= endZ; cz++) {
+                    uniqueChunks.add(ChunkPos.pack(cx, cz));
+                }
+            }
+        }
+        return uniqueChunks.size();
     }
 }

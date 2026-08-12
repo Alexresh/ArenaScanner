@@ -66,8 +66,7 @@ public class SharedScansScreen extends Screen {
                             .append(Component.literal(progress).withStyle(ChatFormatting.WHITE)), font));
             String dimension = info.dimension() == null ? "unknown" : info.dimension();
             String whitelistName = info.whitelistName() == null ? "_" : info.whitelistName();
-            String details = "name: " + whitelistName + " dim: " + dimension
-                    + " range: " + formatRange(info);
+            String details = "name: " + whitelistName + " dim: " + dimension;
             addRenderableWidget(new StringWidget(60, y + 12, width - 120, 12,
                     Component.literal(details).withStyle(ChatFormatting.GRAY), font));
 
@@ -106,7 +105,7 @@ public class SharedScansScreen extends Screen {
         int buttonY = height - 60;
         if (currentPage > 0) {
             addRenderableWidget(Button.builder(Component.literal("< Prev"), btn ->
-                    ClientNetwork.openSharedScansScreen(parent, currentPage - 1)//client.setScreen(new SharedScansScreen(currentPage - 1))
+                    ClientNetwork.openSharedScansScreen(parent, currentPage - 1)
             ).bounds(width / 2 - 120, buttonY, 80, 20).build());
         }
 
@@ -117,7 +116,7 @@ public class SharedScansScreen extends Screen {
 
         if (to < scans.size()) {
             addRenderableWidget(Button.builder(Component.literal("Next >"), btn ->
-                    ClientNetwork.openSharedScansScreen(parent, currentPage + 1)//client.setScreen(new SharedScansScreen(currentPage + 1))
+                    ClientNetwork.openSharedScansScreen(parent, currentPage + 1)
             ).bounds(width / 2 + 40, buttonY, 80, 20).build());
         }
     }
@@ -145,12 +144,12 @@ public class SharedScansScreen extends Screen {
     }
 
 
-    private String formatRange(JobInfo info) {
-        if (info.range() == null) {
-            return "unknown";
-        }
-        return info.range().min().getX() + "," + info.range().min().getY() + "," + info.range().min().getZ()
-                + " -> "
-                + info.range().max().getX() + "," + info.range().max().getY() + "," + info.range().max().getZ();
-    }
+//    private String formatRange(JobInfo info) {
+//        if (info.area() == null) {
+//            return "unknown";
+//        }
+//        return info.area().min().getX() + "," + info.area().min().getY() + "," + info.area().min().getZ()
+//                + " -> "
+//                + info.area().max().getX() + "," + info.area().max().getY() + "," + info.area().max().getZ();
+//    }
 }

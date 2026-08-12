@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import ru.obabok.client.gui.screens.MaterialListScreen;
+import ru.obabok.common.model.BlockArea;
 import ru.obabok.client.models.ScanState;
 import ru.obabok.client.util.ChunkScheduler;
 import ru.obabok.client.util.RenderUtil;
@@ -20,12 +21,13 @@ import ru.obabok.common.model.Whitelist;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 
 public class Scan {
     public static HashSet<BlockPos> selectedBlocks = new HashSet<>();
     public static HashSet<ChunkPos> unloadedChunks = new HashSet<>();
     private static Whitelist whitelist;
-    private static BlockBox range;
+    private static BlockArea area;
     private static boolean processing = false;
     private static boolean remoteProcessing = false;
     private static long remoteChunkProcessedCounter;
@@ -39,10 +41,10 @@ public class Scan {
     }
 
 
-    public static int executeAsync(ClientLevel world, BlockBox _range, String filename){
+    public static int executeAsync(ClientLevel world, BlockArea _range, String filename){
         stopScan();
         processing = true;
-        range = _range;
+        area = _range;
         if (world == null) return 0;
         currentFilename = filename;
         whitelist = WhitelistManager.loadData(currentFilename);
@@ -54,27 +56,20 @@ public class Scan {
             return 0;
         }
 
-        int startChunkX = range.min().getX() >> 4;
-        int startChunkZ = range.min().getZ() >> 4;
-        int endChunkX = range.max().getX() >> 4;
-        int endChunkZ = range.max().getZ() >> 4;
-
-        for (int chunkX = startChunkX; chunkX <= endChunkX; chunkX++) {
-            for (int chunkZ = startChunkZ; chunkZ <= endChunkZ; chunkZ++) {
-                ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
-                if (world.getChunkSource().getChunk(chunkX, chunkZ, ChunkStatus.FULL, false) != null) {
-                    ChunkScheduler.addChunkToProcess(chunkPos);
-                }
-                unloadedChunks.add(chunkPos);
-                allChunksCounter++;
+        HashSet<ChunkPos> affectedChunks = area.getAffectedChunks();
+        for (ChunkPos chunkPos : affectedChunks){
+            if (world.getChunkSource().getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false) != null) {
+                ChunkScheduler.addChunkToProcess(chunkPos);
             }
+            unloadedChunks.add(chunkPos);
+            allChunksCounter++;
         }
         return 1;
     }
 
 
     public static void saveState(){
-        ScanState.saveData(new ScanState(selectedBlocks, unloadedChunks, whitelist, range, allChunksCounter, currentFilename));
+        ScanState.saveData(new ScanState(selectedBlocks, unloadedChunks, whitelist, area, allChunksCounter, currentFilename));
         stopScan();
     }
     public static boolean loadState(){
@@ -83,7 +78,7 @@ public class Scan {
         selectedBlocks = (HashSet<BlockPos>) saveData.selectedBlocks;
         unloadedChunks = (HashSet<ChunkPos>) saveData.unloadedChunks;
         whitelist = saveData.whitelist;
-        range = saveData.range;
+        area = saveData.range;
         allChunksCounter = saveData.allChunksCounter;
         currentFilename = saveData.currentFilename;
         processing = true;
@@ -95,7 +90,7 @@ public class Scan {
         selectedBlocks.clear();
         unloadedChunks.clear();
         allChunksCounter = 0;
-        range = null;
+        area = null;
         currentFilename = null;
         remoteProcessing = false;
         ChunkScheduler.clearQueue();
@@ -103,8 +98,8 @@ public class Scan {
         MaterialListScreen.clear();
     }
 
-    public static void setRange(BlockBox _range){
-        if(!processing) range = _range;
+    public static void setArea(BlockArea _range){
+        if(!processing) area = _range;
     }
     public static String getCurrentFilename(){
         return currentFilename;
@@ -115,17 +110,17 @@ public class Scan {
     public static boolean isRemoteProcessing() {
         return remoteProcessing;
     }
-    public static BlockBox getRange(){
-        return range;
+    public static BlockArea getArea(){
+        return area;
     }
     public static long getAllChunksCounter(){return allChunksCounter;}
 
 
-    public static void startRemoteScan(BlockBox _range, String filename, long totalChunks) {
+    public static void startRemoteScan(BlockArea _range, String filename, long totalChunks) {
         stopScan();
         processing = true;
         remoteProcessing = true;
-        range = _range;
+        area = _range;
         currentFilename = filename;
         allChunksCounter = totalChunks;
         remoteChunkProcessedCounter = totalChunks;
@@ -163,28 +158,42 @@ public class Scan {
     }
 
     public static void processChunk(ClientLevel world, ChunkPos chunkPos){
-        if(isRemoteProcessing() || !processing || range == null || world == null || whitelist == null || chunkPos == null) return;
-        if(world.getChunkSource().getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false) == null) return;
-        if((chunkPos.x() >= range.min().getX() >> 4) && (chunkPos.x() <= range.max().getX() >> 4) && (chunkPos.z() >= range.min().getZ() >> 4) && (chunkPos.z() <= range.max().getZ() >> 4)){
-            //delete destroyed blocks from selected blocks
-            updateChunk(chunkPos, world);
-            //add new blocks to selected blocks
-            checkProcessing();
-            if(processing){
-                for (int x = 0; x < 16; x++) {
-                    for (int y = range.min().getY(); y <= range.max().getY(); y++) {
-                        for (int z = 0; z < 16; z++) {
-                            BlockPos blockPos = new BlockPos(chunkPos.x() * 16 + x, y, chunkPos.z() * 16 + z);
-                            processBlock(blockPos, world.getBlockState(blockPos), world);
+        if (!processing || isRemoteProcessing() || area == null || area.isEmpty() || world == null || whitelist == null || chunkPos == null) {
+            return;
+        }
+        if (world.getChunkSource().getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false) == null) {
+            return;
+        }
+
+        List<BlockBox> relevantBoxes = area.getBoxesIntersectingChunk(chunkPos);
+
+        if (relevantBoxes.isEmpty()) {
+            return;
+        }
+
+        updateChunk(chunkPos, world);
+
+        checkProcessing();
+        if (processing) {
+            for (BlockBox box : relevantBoxes) {
+                int localMinX = Math.max(0, box.min().getX() - (chunkPos.x() << 4));
+                int localMaxX = Math.min(15, box.max().getX() - (chunkPos.x() << 4));
+                int localMinZ = Math.max(0, box.min().getZ() - (chunkPos.z() << 4));
+                int localMaxZ = Math.min(15, box.max().getZ() - (chunkPos.z() << 4));
+
+                for (int x = localMinX; x <= localMaxX; x++) {
+                    for (int y = box.min().getY(); y <= box.max().getY(); y++) {
+                        for (int z = localMinZ; z <= localMaxZ; z++) {
+                            BlockPos pos = new BlockPos((chunkPos.x() << 4) + x, y, (chunkPos.z() << 4) + z);
+                            processBlock(pos, world.getBlockState(pos), world);
                         }
                     }
                 }
             }
-
-            //remove chunk from processing
-            unloadedChunks.remove(chunkPos);
-            checkProcessing();
         }
+
+        unloadedChunks.remove(chunkPos);
+        checkProcessing();
     }
 
     //deletes blocks from selected blocks
@@ -213,15 +222,13 @@ public class Scan {
 
     //adds blocks to selected blocks
     public static void processBlock(BlockPos blockPos, BlockState blockState, Level world){
-        if(range == null || whitelist == null) return;
-        if(blockPos.getX() <= range.max().getX() && blockPos.getX() >= range.min().getX() &&
-                blockPos.getY() <= range.max().getY() && blockPos.getY() >= range.min().getY() &&
-                blockPos.getZ() <= range.max().getZ() && blockPos.getZ() >= range.min().getZ()){
-            if(BlockMatcher.matches(whitelist, blockState, world, blockPos)){
-                selectedBlocks.add(blockPos);
-                MaterialListScreen.addBlock(blockState.getBlock(), 1);
-            }
+        if (whitelist == null) return;
+
+        if (BlockMatcher.matches(whitelist, blockState, world, blockPos)) {
+            selectedBlocks.add(blockPos);
+            MaterialListScreen.addBlock(blockState.getBlock(), 1);
         }
+
         checkProcessing();
     }
 }

@@ -4,13 +4,13 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.core.BlockBox;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import ru.obabok.client.Config;
 import ru.obabok.client.Scan;
 import ru.obabok.client.gui.screens.MaterialListScreen;
 import ru.obabok.client.gui.screens.SharedScansScreen;
+import ru.obabok.common.model.BlockArea;
 import ru.obabok.client.util.WhitelistManager;
 import ru.obabok.common.NetworkPackets;
 import ru.obabok.common.References;
@@ -69,7 +69,8 @@ public class ClientNetwork {
                 return;
             }
             activeJobId = payload.jobId();
-            Scan.startRemoteScan(pending.range, pending.whitelistName, payload.totalChunks());
+            BlockArea area = new BlockArea(pending.range);
+            Scan.startRemoteScan(area, pending.whitelistName, payload.totalChunks());
         });
 
         ClientPlayNetworking.registerGlobalReceiver(ScanRejectedPayload.ID, (payload, context) -> {
@@ -88,9 +89,9 @@ public class ClientNetwork {
             if (payload.jobId() != activeJobId) return;
             activeJobId = 0;
             if(payload.restart()){
-                BlockBox range = Scan.getRange();
+                BlockArea range = Scan.getArea();
                 Scan.stopScan();
-                Scan.setRange(range);
+                Scan.setArea(range);
             }else {
                 Scan.stopScan();
             }
@@ -130,7 +131,7 @@ public class ClientNetwork {
         return debugServerPacketsQueue;
     }
 
-    public static boolean requestScan(BlockBox range, String whitelistName, String shareName) {
+    public static boolean requestScan(BlockArea range, String whitelistName, String shareName) {
         if (!canUseServerScan()) {
             return false;
         }
@@ -165,9 +166,9 @@ public class ClientNetwork {
         if (!ClientPlayNetworking.canSend(ScanSubscribePayload.ID)) {
             return;
         }
-        BlockBox range = info.range();
+        BlockArea area = info.area();
         String whitelistName = info.whitelistName();
-        pendingStarts.put(info.id(), new PendingStart(range, whitelistName));
+        pendingStarts.put(info.id(), new PendingStart(area, whitelistName));
         ClientPlayNetworking.send(new ScanSubscribePayload(info.id()));
     }
 
@@ -192,6 +193,6 @@ public class ClientNetwork {
         }
     }
 
-    private record PendingStart(BlockBox range, String whitelistName) {
+    private record PendingStart(BlockArea range, String whitelistName) {
     }
 }

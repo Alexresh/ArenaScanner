@@ -21,6 +21,7 @@ import net.minecraft.world.level.chunk.storage.ChunkScanAccess;
 import net.minecraft.world.level.chunk.storage.IOWorker;
 import ru.obabok.common.BlockMatcher;
 import ru.obabok.common.References;
+import ru.obabok.common.model.BlockArea;
 import ru.obabok.common.model.JobInfo;
 import ru.obabok.common.model.Whitelist;
 import ru.obabok.common.network.s2c.ScanChunkSummaryPayload;
@@ -29,6 +30,8 @@ import ru.obabok.common.network.s2c.ScanFullCompletedPayload;
 import ru.obabok.server.network.SendQueue;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -36,7 +39,7 @@ public class FastScanJob {
     private final long jobId;
     private final ServerPlayer owner;
     private final ArrayList<ServerPlayer> subscribers;
-    private final BlockBox range;
+    private final BlockArea range;
     private final Whitelist whitelist;
     private final ServerLevel world;
     private boolean scanCompleted;
@@ -57,7 +60,7 @@ public class FastScanJob {
     private final ChunkCursor chunkCursor;
     private int sendCooldown = 1;
 
-    public FastScanJob(ServerPlayer player, long jobId, BlockBox range, Whitelist whitelist, String sharedName, String whitelistName){
+    public FastScanJob(ServerPlayer player, long jobId, BlockArea range, Whitelist whitelist, String sharedName, String whitelistName){
         this.jobId = jobId;
         this.owner = player;
         this.range = range;
@@ -269,30 +272,59 @@ public class FastScanJob {
     }
 
     private void scanChunk(ProtoChunk chunk, ChunkPos chunkPos, LongArrayList output) {
-        output.clear();
-        int minX = Math.max(chunkPos.getMinBlockX(), range.min().getX());
-        int maxX = Math.min(chunkPos.getMaxBlockX(), range.max().getX());
-        int minZ = Math.max(chunkPos.getMinBlockZ(), range.min().getZ());
-        int maxZ = Math.min(chunkPos.getMaxBlockZ(), range.max().getZ());
-        int minY = Math.max(range.min().getY(), world.getMinY());
-        int maxY = Math.min(range.max().getY(), world.getMaxY());
-        if (minY > maxY) {
-            return;
-        }
+        List<BlockBox> relevantBoxes = getRelevantBoxes(chunkPos);
+        if (relevantBoxes.isEmpty()) return;
 
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        for (int y = minY; y <= maxY; y++) {
-            for (int x = minX; x <= maxX; x++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    pos.set(x, y, z);
-                    if (BlockMatcher.matches(whitelist, chunk.getBlockState(pos), world, pos)) {
+        int chunkMinX = chunkPos.getMinBlockX();
+        int chunkMaxX = chunkPos.getMaxBlockX();
+        int chunkMinZ = chunkPos.getMinBlockZ();
+        int chunkMaxZ = chunkPos.getMaxBlockZ();
+
+        for (int i = 0; i < relevantBoxes.size(); i++) {
+            int minX = Math.max(chunkMinX, relevantBoxes.get(i).min().getX());
+            int maxX = Math.min(chunkMaxX, relevantBoxes.get(i).max().getX());
+            int minZ = Math.max(chunkMinZ, relevantBoxes.get(i).min().getZ());
+            int maxZ = Math.min(chunkMaxZ, relevantBoxes.get(i).max().getZ());
+            int minY = Math.max(relevantBoxes.get(i).min().getY(), world.getMinY());
+            int maxY = Math.min(relevantBoxes.get(i).max().getY(), world.getMaxY());
+
+            if (minX > maxX || minZ > maxZ || minY > maxY) continue;
+
+            for (int y = minY; y <= maxY; y++) {
+                for (int x = minX; x <= maxX; x++) {
+                    for (int z = minZ; z <= maxZ; z++) {
+                        pos.set(x, y, z);
                         long p = pos.asLong();
-                        output.add(p);
-                        materialList.addTo(chunk.getBlockState(pos).getBlock(), 1);
+
+                        if (output.contains(p)) continue;
+
+                        BlockState state = chunk.getBlockState(pos);
+                        if (BlockMatcher.matches(whitelist, state, world, pos)) {
+                            output.add(p);
+                            materialList.addTo(state.getBlock(), 1);
+                        }
                     }
                 }
             }
         }
+    }
+
+    private List<BlockBox> getRelevantBoxes(ChunkPos chunkPos) {
+        int chunkMinX = chunkPos.getMinBlockX();
+        int chunkMaxX = chunkPos.getMaxBlockX();
+        int chunkMinZ = chunkPos.getMinBlockZ();
+        int chunkMaxZ = chunkPos.getMaxBlockZ();
+
+        List<BlockBox> result = new ArrayList<>();
+        for (int i = 0; i < range.size(); i++) {
+            boolean intersectsX = range.getArea(i).min().getX() <= chunkMaxX && range.getArea(i).max().getX() >= chunkMinX;
+            boolean intersectsZ = range.getArea(i).min().getZ() <= chunkMaxZ && range.getArea(i).max().getZ() >= chunkMinZ;
+            if (intersectsX && intersectsZ) {
+                result.add(range.getArea(i));
+            }
+        }
+        return result;
     }
 
     public void stop(String cause, boolean restart){
@@ -359,44 +391,49 @@ public class FastScanJob {
     }
 
     private boolean isInRange(BlockPos pos) {
-        return pos.getX()     >= range.min().getX()
-                && pos.getX() <= range.max().getX()
-                && pos.getY() >= range.min().getY()
-                && pos.getY() <= range.max().getY()
-                && pos.getZ() >= range.min().getZ()
-                && pos.getZ() <= range.max().getZ();
+        for (int i = 0; i < range.size(); i++) {
+            if (pos.getX() >= range.getArea(i).min().getX() && pos.getX() <= range.getArea(i).max().getX()
+                    && pos.getY() >= range.getArea(i).min().getY() && pos.getY() <= range.getArea(i).max().getY()
+                    && pos.getZ() >= range.getArea(i).min().getZ() && pos.getZ() <= range.getArea(i).max().getZ()) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
     private static class ChunkCursor {
-        private final int startX;
-        private final int startZ;
-        private final int width;
-        private final int total;
+        private final List<ChunkPos> chunks;
         private int current = 0;
 
-        public ChunkCursor(BlockBox range) {
-            this.startX = range.min().getX() >> 4;
-            this.startZ = range.min().getZ() >> 4;
-            int endX = range.max().getX() >> 4;
-            int endZ = range.max().getZ() >> 4;
-            this.width = (endX - startX + 1);
-            this.total = width * (endZ - startZ + 1);
+        public ChunkCursor(BlockArea area) {
+            // Собираем уникальные чанки из всех боксов
+            LinkedHashSet<ChunkPos> uniqueChunks = new LinkedHashSet<>();
+            for (BlockBox box : area.getBoxes()) {
+                int startX = box.min().getX() >> 4;
+                int startZ = box.min().getZ() >> 4;
+                int endX = box.max().getX() >> 4;
+                int endZ = box.max().getZ() >> 4;
+                for (int cx = startX; cx <= endX; cx++) {
+                    for (int cz = startZ; cz <= endZ; cz++) {
+                        uniqueChunks.add(new ChunkPos(cx, cz));
+                    }
+                }
+            }
+            this.chunks = new ArrayList<>(uniqueChunks);
         }
 
         public int size() {
-            return total;
+            return chunks.size();
         }
 
         public boolean hasNext() {
-            return current < total;
+            return current < chunks.size();
         }
 
         public long nextLong() {
-            int cz = current / width;
-            int cx = current % width;
-            current++;
-            return ChunkPos.pack(startX + cx, startZ + cz);
+            ChunkPos pos = chunks.get(current++);
+            return ChunkPos.pack(pos.x(), pos.z());
         }
     }
 

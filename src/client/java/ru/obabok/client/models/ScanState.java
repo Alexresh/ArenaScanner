@@ -34,13 +34,13 @@ public class ScanState {
     public Set<BlockPos> selectedBlocks;
     public Set<ChunkPos> unloadedChunks;
     public Whitelist whitelist;
-    public BlockBox range;
+    public ru.obabok.common.model.BlockArea range;
     public long allChunksCounter;
     public String currentFilename;
 
     private static final Path configPath = Path.of(WhitelistManager.stringWhitelistsPath).getParent().resolve("savedScan.json");
 
-    public ScanState(Set<BlockPos> _selectedBlocks, Set<ChunkPos> _unloadedChunks, Whitelist _whitelist, BlockBox _range, long _allChunksCounter, String _currentFilename){
+    public ScanState(Set<BlockPos> _selectedBlocks, Set<ChunkPos> _unloadedChunks, Whitelist _whitelist, ru.obabok.common.model.BlockArea _range, long _allChunksCounter, String _currentFilename){
         this.selectedBlocks = _selectedBlocks;
         this.unloadedChunks = _unloadedChunks;
         this.whitelist = _whitelist;
