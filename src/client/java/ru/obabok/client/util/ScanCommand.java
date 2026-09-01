@@ -97,7 +97,6 @@ public class ScanCommand {
                             Minecraft.getInstance().gui.setScreen(new ConfigGui());
                         });
                     }
-                    Minecraft.getInstance().setScreenAndShow(new ConfigGui());
                     return 1;
                 }))
         );
