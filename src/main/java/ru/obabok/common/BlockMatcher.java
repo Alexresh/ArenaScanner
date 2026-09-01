@@ -35,8 +35,12 @@ public class BlockMatcher {
             }
 
             if (whitelistItem.waterlogged != null) {
-                boolean waterlogged = blockState.getValue(BlockStateProperties.WATERLOGGED);
-                if (Boolean.parseBoolean(whitelistItem.waterlogged) != waterlogged) {
+                if(blockState.hasProperty(BlockStateProperties.WATERLOGGED)){
+                    boolean waterlogged = blockState.getValue(BlockStateProperties.WATERLOGGED);
+                    if (Boolean.parseBoolean(whitelistItem.waterlogged) != waterlogged) {
+                        insideMeet = false;
+                    }
+                }else{
                     insideMeet = false;
                 }
             }
